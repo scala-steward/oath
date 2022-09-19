@@ -6,7 +6,7 @@ ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports"
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val root = Projects
-  .createModule("oauth", ".")
+  .createModule("oath", ".")
   .settings(Aliases.all)
   .aggregate(modules: _*)
 
