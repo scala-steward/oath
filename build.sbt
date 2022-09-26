@@ -10,7 +10,9 @@ lazy val root = Projects
   .settings(Aliases.all)
   .aggregate(modules: _*)
 
-lazy val core = Projects.createModule("core").settings(Dependencies.core)
+lazy val core = Projects
+  .createModule("core")
+  .settings(Dependencies.core)
 
 lazy val modules: Seq[ProjectReference] = Seq(
   core
