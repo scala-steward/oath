@@ -9,7 +9,7 @@ final case class OathConfig(jwt: JWTConfig)
 
 object OathConfig {
 
-  final case class JWTConfig(jws: JWSConfig, payload: PayloadConfig)
+  final case class JWTConfig(jws: JWSConfig, payload: PayloadConfig, verifier: VerifierConfig)
 
   final case class JWSConfig(algorithm: Algorithm)
 
@@ -21,4 +21,13 @@ object OathConfig {
                                  includeIssuedAt: Boolean,
                                  includeJwtId: Boolean
   )
+
+  final case class VerifierConfig(withIssuer: Option[String],
+                                  withSubject: Option[String],
+                                  withAudience: Option[String],
+                                  acceptLeeway: Option[FiniteDuration],
+                                  acceptIssuedAt: Option[FiniteDuration],
+                                  acceptExpiresAt: Option[FiniteDuration],
+                                  acceptNotBefore: Option[FiniteDuration],
+                                )
 }
