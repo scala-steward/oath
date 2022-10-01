@@ -1,8 +1,6 @@
 package oath.config
 
-import com.auth0.jwt.algorithms.Algorithm
-
-import java.security.{KeyFactory, PrivateKey, PublicKey}
+import java.security.KeyFactory
 
 object JWSConfigLoader {
 

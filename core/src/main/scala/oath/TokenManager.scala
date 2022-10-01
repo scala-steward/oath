@@ -1,18 +1,18 @@
 package oath
 
-import cats.implicits.toTraverseOps
-import com.auth0.jwt.{JWT, JWTVerifier}
-import oath.config.OathConfig
-import oath.model.{DecodeError, JWT, JWTClaims}
-
 import java.time.Instant
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsJava
+
+import com.auth0.jwt.{JWT, JWTVerifier}
+import oath.config.OathConfig
+
 import scala.util.Try
-import scala.util.chaining.scalaUtilChainingOps
 import scala.util.control.Exception.allCatch
 
-class OathManager(config: OathConfig, customJWTVerifier: Option[JWTVerifier] = None) {
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.chaining.scalaUtilChainingOps
+
+class TokenManager(config: OathConfig, customJWTVerifier: Option[JWTVerifier] = None) {
 
   private val jwtCreator  = JWT.create()
   private val jwtVerifier = createVerifier()
@@ -37,15 +37,13 @@ class OathManager(config: OathConfig, customJWTVerifier: Option[JWTVerifier] = N
 
   private def extractJWTClaims[T](
       maybeClaims: Option[T]
-  )(implicit maybeEncoder: Option[ClaimsEncoder[T]]): Option[util.Map[String, AnyRef]] = for {
-    claims  <- maybeClaims
-    encoder <- maybeEncoder
-  } yield encoder.encode(claims).asJava
+  )(implicit encoder: ClaimsEncoder[T]): Option[util.Map[String, Any]] =
+    maybeClaims.map(claims => encoder.encode(claims).asJava)
 
-  def issueJWT[H, P](jwtClaims: model.JWTClaims[H, P])(implicit
-      maybeHeaderDecoder: Option[ClaimsEncoder[H]],
-      maybePayloadDecoder: Option[ClaimsEncoder[P]]
-  ): Try[model.JWT[H, P]] =
+  def issueJWT[H, P](jwtClaims: model.TokenClaims[H, P])(implicit
+                                                         maybeHeaderDecoder: ClaimsEncoder[H],
+                                                         maybePayloadDecoder: ClaimsEncoder[P]
+  ): Try[model.Token[H, P]] =
     allCatch.withTry(
       jwtCreator
         .tap(jwtCreator => extractJWTClaims(jwtClaims.header).map(jwtCreator.withHeader))
@@ -62,18 +60,17 @@ class OathManager(config: OathConfig, customJWTVerifier: Option[JWTVerifier] = N
           notBefore.map(jwtCreator.withNotBefore)
         }
         .sign(config.jwt.jws.algorithm)
-        .pipe(JWT(jwtClaims.header, jwtClaims.payload, _))
+        .pipe(model.Token(jwtClaims.header, jwtClaims.payload, _))
     )
 
   def verifyJWT[H, P](token: String)(implicit
-      maybeHeaderDecoder: Option[ClaimsDecoder[H]],
-      maybePayloadDecoder: Option[ClaimsDecoder[P]]
-  ): Either[DecodeError, model.JWTClaims[H, P]] = {
+      maybeHeaderDecoder: ClaimsDecoder[H],
+      maybePayloadDecoder: ClaimsDecoder[P]
+  ): Either[model.VerifyJWTError, model.TokenClaims[H, P]] = {
     val decodedJwt = jwtVerifier.verify(token)
     for {
-      header  <- maybeHeaderDecoder.traverse(decoder => decoder.decode(decodedJwt))
-      payload <- maybePayloadDecoder.traverse(decoder => decoder.decode(decodedJwt))
-    } yield JWTClaims(header, payload)
+      header  <- maybeHeaderDecoder.decode(decodedJwt)
+      payload <- maybePayloadDecoder.decode(decodedJwt)
+    } yield model.TokenClaims(Option(header), Option(payload))
   }
-
 }

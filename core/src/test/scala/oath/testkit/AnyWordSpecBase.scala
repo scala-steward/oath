@@ -1,9 +1,9 @@
 package oath.testkit
 
-import org.scalatest.{EitherValues, LoneElement, OptionValues}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{EitherValues, LoneElement, OptionValues}
 
 import scala.concurrent.duration.DurationInt
 

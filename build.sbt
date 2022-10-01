@@ -14,6 +14,14 @@ lazy val core = Projects
   .createModule("core")
   .settings(Dependencies.core)
 
+lazy val csrf = Projects
+  .createModule("csrf")
+  .settings(Dependencies.core)
+
+lazy val jwt = Projects
+  .createModule("jwt")
+  .settings(Dependencies.core)
+
 lazy val modules: Seq[ProjectReference] = Seq(
   core
 )
