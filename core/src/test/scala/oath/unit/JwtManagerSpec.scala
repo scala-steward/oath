@@ -1,25 +1,25 @@
 package oath.unit
 
-import oath.config.OathConfig
-import oath.config.OathConfig.{JWSConfig, JWTConfig, PayloadConfig, VerifierConfig}
-import oath.model.TokenClaims
+import oath.old.TokenConfig.{JWSConfig, TokenConfig, PayloadConfig, VerifierConfig}
+import oath.model.JwtClaims
 import oath.testkit.AnyWordSpecBase
-import oath.{ClaimsDecoder, ClaimsEncoder, TokenManager}
+import oath.{ClaimsDecoder, ClaimsEncoder, JWTManager}
 
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
+import oath.old.TokenConfig
 
-class TokenManagerSpec extends AnyWordSpecBase{
+class JwtManagerSpec extends AnyWordSpecBase{
 
   val jwsConfig = JWSConfig()
   val payloadConfig = PayloadConfig()
   val verifierConfig = VerifierConfig()
-  val jwtConfig = JWTConfig(jwsConfig,payloadConfig,verifierConfig)
-  val config = OathConfig(jwtConfig)
+  val jwtConfig = TokenConfig(jwsConfig,payloadConfig,verifierConfig)
+  val config = TokenConfig(jwtConfig)
 
   final case class UserClaims(id: String, age: Int)
 
-  val jwtClaims = TokenClaims(None,Some(UserClaims("andre",18)))
+  val jwtClaims = JwtClaims(None,Some(UserClaims("andre",18)))
 
   implicit def covertToOptionalClaimEncoder[T](encoder: ClaimsEncoder[T]): Option[ClaimsEncoder[T]] = encoder.some
 
@@ -31,7 +31,7 @@ class TokenManagerSpec extends AnyWordSpecBase{
     "issue a Token" should {
 
       "" in {
-        val oathManager = new TokenManager(config)
+        val oathManager = new JWTManager(config)
 
 
         oathManager.issueJWT(jwtClaims)
@@ -41,10 +41,11 @@ class TokenManagerSpec extends AnyWordSpecBase{
     "verify token" should {
 
       "" in {
-        val oathManager = new TokenManager(config)
+        val oathManager = new JWTManager(config)
 
         val jwt = oathManager.issueJWT(jwtClaims)
         oathManager.verifyJWT[Null,UserClaims](jwt.toOption.value.signature)
+        oathManager.verifyJWT[UserClaims](jwt.toOption.value.signature)
       }
     }
   }

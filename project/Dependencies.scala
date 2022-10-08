@@ -10,6 +10,9 @@ object Dependencies {
     val javaJWT            = "4.0.0"
     val config             = "1.4.2"
     val cats               = "2.8.0"
+    val bcprov             = "1.70"
+    val logbackClassic     = "1.4.1"
+    val scalaLogging       = "3.9.5"
   }
 
   object Testing {
@@ -21,10 +24,13 @@ object Dependencies {
   }
 
   object Utils {
-    val config = "com.typesafe"   % "config"    % Versions.config
-    val cats   = "org.typelevel" %% "cats-core" % Versions.cats
+    val config         = "com.typesafe"                % "config"          % Versions.config
+    val cats           = "org.typelevel"              %% "cats-core"       % Versions.cats
+    val bcprov         = "org.bouncycastle"            % "bcprov-jdk15on"  % Versions.bcprov
+    val logbackClassic = "ch.qos.logback"              % "logback-classic" % Versions.logbackClassic
+    val scalaLogging   = "com.typesafe.scala-logging" %% "scala-logging" % Versions.scalaLogging
 
-    val all    = Seq(config, cats)
+    val all = Seq(config, cats, bcprov, logbackClassic, scalaLogging)
   }
 
   object Auth0 {
