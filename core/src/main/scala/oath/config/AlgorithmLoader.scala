@@ -1,14 +1,16 @@
 package oath.config
 
-import com.auth0.jwt.algorithms.Algorithm
-import com.typesafe.config.Config
-import org.bouncycastle.util.io.pem.PemReader
-
 import java.io.{File, FileReader}
 import java.security.interfaces.{ECKey, RSAKey}
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security.{KeyFactory, PrivateKey, PublicKey}
+
+import com.auth0.jwt.algorithms.Algorithm
+import com.typesafe.config.Config
+import org.bouncycastle.util.io.pem.PemReader
+
 import scala.util.Using
+
 import scala.util.chaining.scalaUtilChainingOps
 
 object AlgorithmLoader {
@@ -28,13 +30,13 @@ object AlgorithmLoader {
     else algorithmScoped.getConfig(VerifyKeyConfigObject).getString(SecretKeyConfigValue)
 
   private def loadRSAKeyOrThrow(algorithmScoped: Config, forIssuing: Boolean): RSAKey = {
-    val RSAKeyFactory = new KeyFactory(RSAKeyFactoryInstance)
+    val RSAKeyFactory = KeyFactory.getInstance(RSAKeyFactoryInstance)
     if (forIssuing) loadPrivateKey(algorithmScoped, RSAKeyFactory).asInstanceOf[RSAKey]
     else loadPublicKey(algorithmScoped, RSAKeyFactory).asInstanceOf[RSAKey]
   }
 
   private def loadECKeyOrThrow(algorithmScoped: Config, forIssuing: Boolean): ECKey = {
-    val ECKeyFactory = new KeyFactory(ECKeyFactoryInstance)
+    val ECKeyFactory = KeyFactory.getInstance(ECKeyFactoryInstance)
     if (forIssuing) loadPrivateKey(algorithmScoped, ECKeyFactory).asInstanceOf[ECKey]
     else loadPublicKey(algorithmScoped, ECKeyFactory).asInstanceOf[ECKey]
   }

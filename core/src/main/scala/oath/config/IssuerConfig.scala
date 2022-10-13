@@ -12,7 +12,7 @@ object IssuerConfig {
 
   final case class RegisteredConfig(issuerClaim: Option[String],
                                     subjectClaim: Option[String],
-                                    audienceClaim: Option[String],
+                                    audienceClaim: Seq[String],
                                     includeJwtIdClaim: Boolean,
                                     includeIssueAtClaim: Boolean,
                                     expiresAtOffset: Option[FiniteDuration],
@@ -26,7 +26,7 @@ object IssuerConfig {
   private def loadRegisterScoped(registeredScoped: Config): RegisteredConfig = {
     val issuerClaim          = registeredScoped.getMaybeString("issuer-claim")
     val subjectClaim         = registeredScoped.getMaybeString("subject-claim")
-    val audienceClaim        = registeredScoped.getMaybeString("audience-claim")
+    val audienceClaim        = registeredScoped.getSeqString("audience-claim")
     val includeIssuedAtClaim = registeredScoped.getBooleanDefaultFalse("include-issued-at-claim")
     val includeJwtIdClaim    = registeredScoped.getBooleanDefaultFalse("include-jwt-id-claim")
     val expiresAtOffset      = registeredScoped.getMaybeFiniteDuration("expires-at-offset")

@@ -1,0 +1,5 @@
+package oath
+
+class JwtVerifierSpec {
+
+}

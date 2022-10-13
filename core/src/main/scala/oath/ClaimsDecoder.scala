@@ -1,8 +1,7 @@
 package oath
 
-import com.auth0.jwt.interfaces.DecodedJWT
-import oath.model.VerifyJWTError
+import oath.model.VerifyJwtError
 
 trait ClaimsDecoder[T] {
-  def decode(decodedJWT: DecodedJWT): Either[VerifyJWTError.DecodingError, T]
+  def decode(decodedJwt: String): Either[VerifyJwtError, T]
 }

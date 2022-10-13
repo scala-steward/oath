@@ -1,3 +1,3 @@
 package oath.model
 
-final case class Jwt(claims: JwtClaims, token: String)
+final case class Jwt[C <: JwtClaims](claims: C, token: String)

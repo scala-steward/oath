@@ -1,4 +1,4 @@
-package oath.unit.config
+package oath.config
 
 class AlgorithmLoaderSpec {
 

@@ -1,18 +1,19 @@
 package oath
 
-import cats.implicits.catsSyntaxOptionId
 import com.typesafe.config.{Config, ConfigException}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.control.Exception.allCatch
+
+import cats.implicits.catsSyntaxOptionId
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.DurationConverters.JavaDurationOps
-import scala.util.control.Exception.allCatch
 
 package object config {
 
   implicit class ConfigOps(private val config: Config) {
 
-    private def ifMissingDefault[T](default: T): PartialFunction[Throwable, T] = { case ConfigException.Missing =>
+    private def ifMissingDefault[T](default: T): PartialFunction[Throwable, T] = { case _: ConfigException.Missing =>
       default
     }
 
