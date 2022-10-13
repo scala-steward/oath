@@ -1,8 +1,11 @@
 package oath.testkit
 
 import com.auth0.jwt.algorithms.Algorithm
+import oath.NestedHeader.SimpleHeader
+import oath.NestedPayload.SimplePayload
 import oath.config.IssuerConfig
 import oath.config.IssuerConfig.RegisteredConfig
+import oath.{NestedHeader, NestedPayload}
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.concurrent.duration.Duration
@@ -30,4 +33,31 @@ trait Arbitraries {
     } yield IssuerConfig(Algorithm.none(), registered)
   }
 
+  implicit val simplePayloadArbitrary: Arbitrary[SimplePayload] = Arbitrary {
+    for {
+      name <- Gen.alphaStr
+      data <- Gen.listOf(Gen.alphaStr)
+    } yield SimplePayload(name, data)
+  }
+
+  implicit val simpleHeaderArbitrary: Arbitrary[SimpleHeader] = Arbitrary {
+    for {
+      name <- Gen.alphaStr
+      data <- Gen.listOf(Gen.alphaStr)
+    } yield SimpleHeader(name, data)
+  }
+
+  implicit val nestedPayloadArbitrary: Arbitrary[NestedPayload] = Arbitrary {
+    for {
+      name    <- Gen.alphaStr
+      mapping <- Gen.mapOf(Gen.alphaStr.flatMap(str => simplePayloadArbitrary.arbitrary.map((str, _))))
+    } yield NestedPayload(name, mapping)
+  }
+
+  implicit val nestedHeaderArbitrary: Arbitrary[NestedHeader] = Arbitrary {
+    for {
+      name    <- Gen.alphaStr
+      mapping <- Gen.mapOf(Gen.alphaStr.flatMap(str => simpleHeaderArbitrary.arbitrary.map((str, _))))
+    } yield NestedHeader(name, mapping)
+  }
 }

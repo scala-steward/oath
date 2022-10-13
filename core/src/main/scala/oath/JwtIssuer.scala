@@ -9,12 +9,11 @@ import com.auth0.jwt.{JWT, JWTCreator}
 import oath.config.IssuerConfig
 import oath.model.{IssueJwtError, Jwt, JwtClaims}
 
-import scala.jdk.CollectionConverters._
 import scala.util.control.Exception.allCatch
 
 import scala.util.chaining.scalaUtilChainingOps
 
-class JwtIssuer(config: IssuerConfig)(implicit clock: Clock = Clock.systemUTC()) {
+class JwtIssuer(config: IssuerConfig,clock: Clock = Clock.systemUTC()) {
 
   private val jwtBuilder: JWTCreator.Builder = JWT.create()
 
@@ -22,7 +21,7 @@ class JwtIssuer(config: IssuerConfig)(implicit clock: Clock = Clock.systemUTC())
     builder
       .tap(builder => config.registered.issuerClaim.map(builder.withIssuer))
       .tap(builder => config.registered.subjectClaim.map(builder.withSubject))
-      .tap(builder => builder.withAudience(config.registered.audienceClaim: _*))
+      .tap(builder => builder.withAudience(config.registered.audienceClaims: _*))
       .tap(builder =>
         if (config.registered.includeJwtIdClaim)
           config.registered.issuerClaim
@@ -56,35 +55,35 @@ class JwtIssuer(config: IssuerConfig)(implicit clock: Clock = Clock.systemUTC())
     )
 
   def issueJWT[H, P](jwtClaims: JwtClaims.JwtClaimsHP[H, P])(implicit
-      headerClaimsEncoder: HeaderClaimsEncoder[H],
-      payloadClaimsEncoder: PayloadClaimsEncoder[P]
+      headerClaimsEncoder: ClaimsEncoder[H],
+      payloadClaimsEncoder: ClaimsEncoder[P]
   ): Either[IssueJwtError, Jwt[JwtClaims.JwtClaimsHP[H, P]]] =
     handler(
       jwtBuilder
-        .tap(builder => headerClaimsEncoder.encode(jwtClaims.header).asJava.pipe(builder.withHeader))
-        .tap(builder => payloadClaimsEncoder.encode(jwtClaims.payload).asJava.pipe(builder.withPayload))
+        .tap(builder => headerClaimsEncoder.encode(jwtClaims.header).pipe(builder.withHeader))
+        .tap(builder => payloadClaimsEncoder.encode(jwtClaims.payload).pipe(builder.withPayload))
         .tap(setPredefinedClaims)
         .sign(config.algorithm)
         .pipe(Jwt(jwtClaims, _))
     )
 
   def issueJWT[P](jwtClaims: JwtClaims.JwtClaimsP[P])(implicit
-      payloadClaimsEncoder: PayloadClaimsEncoder[P]
+      payloadClaimsEncoder: ClaimsEncoder[P]
   ): Either[IssueJwtError, Jwt[JwtClaims.JwtClaimsP[P]]] =
     handler(
       jwtBuilder
-        .tap(builder => payloadClaimsEncoder.encode(jwtClaims.payload).asJava.pipe(builder.withPayload))
+        .tap(builder => payloadClaimsEncoder.encode(jwtClaims.payload).pipe(builder.withPayload))
         .tap(setPredefinedClaims)
         .sign(config.algorithm)
         .pipe(Jwt(jwtClaims, _))
     )
 
   def issueJWT[H](jwtClaims: JwtClaims.JwtClaimsH[H])(implicit
-      headerClaimsEncoder: HeaderClaimsEncoder[H]
+      headerClaimsEncoder: ClaimsEncoder[H]
   ): Either[IssueJwtError, Jwt[JwtClaims.JwtClaimsH[H]]] =
     handler(
       jwtBuilder
-        .tap(builder => headerClaimsEncoder.encode(jwtClaims.header).asJava.pipe(builder.withHeader))
+        .tap(builder => headerClaimsEncoder.encode(jwtClaims.header).pipe(builder.withHeader))
         .tap(setPredefinedClaims)
         .sign(config.algorithm)
         .pipe(Jwt(jwtClaims, _))

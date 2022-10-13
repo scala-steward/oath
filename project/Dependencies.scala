@@ -13,15 +13,6 @@ object Dependencies {
     val bcprov             = "1.70"
     val logbackClassic     = "1.4.3"
     val scalaLogging       = "3.9.5"
-    val circe              = "0.14.3"
-  }
-
-  object Circe {
-    val core    = "io.circe" %% "circe-core"    % Versions.circe
-    val generic = "io.circe" %% "circe-generic" % Versions.circe
-    val parser  = "io.circe" %% "circe-parser"  % Versions.circe
-
-    val all = Seq(core, generic, parser)
   }
 
   object Testing {
@@ -48,5 +39,5 @@ object Dependencies {
     val all = Seq(javaJWT)
   }
 
-  lazy val core = libraryDependencies ++= Testing.all ++ Auth0.all ++ Utils.all ++ Circe.all.map(_ % Test)
+  lazy val core = libraryDependencies ++= Testing.all ++ Auth0.all ++ Utils.all
 }
