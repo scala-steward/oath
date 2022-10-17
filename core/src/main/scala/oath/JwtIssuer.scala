@@ -4,7 +4,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant}
 import java.util.UUID
 
-import com.auth0.jwt.exceptions.{JWTCreationException, SignatureGenerationException}
+import com.auth0.jwt.exceptions.JWTCreationException
 import com.auth0.jwt.{JWT, JWTCreator}
 import oath.config.IssuerConfig
 import oath.model.{IssueJwtError, Jwt, JwtClaims}
@@ -13,7 +13,7 @@ import scala.util.control.Exception.allCatch
 
 import scala.util.chaining.scalaUtilChainingOps
 
-class JwtIssuer(config: IssuerConfig,clock: Clock = Clock.systemUTC()) {
+class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
 
   private val jwtBuilder: JWTCreator.Builder = JWT.create()
 
@@ -42,7 +42,6 @@ class JwtIssuer(config: IssuerConfig,clock: Clock = Clock.systemUTC()) {
     allCatch.withTry(jwt).toEither.left.map {
       case e: IllegalArgumentException     => IssueJwtError.IllegalArgument(e.getMessage)
       case e: JWTCreationException         => IssueJwtError.JwtCreationError(e.getMessage)
-      case e: SignatureGenerationException => IssueJwtError.SignatureGenerationError(e.getMessage)
       case e                               => IssueJwtError.UnexpectedError(e.getMessage)
     }
 

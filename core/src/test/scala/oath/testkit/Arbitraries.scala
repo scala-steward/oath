@@ -3,8 +3,9 @@ package oath.testkit
 import com.auth0.jwt.algorithms.Algorithm
 import oath.NestedHeader.SimpleHeader
 import oath.NestedPayload.SimplePayload
-import oath.config.IssuerConfig
+import oath.config.{IssuerConfig, VerifierConfig}
 import oath.config.IssuerConfig.RegisteredConfig
+import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
 import oath.{NestedHeader, NestedPayload}
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -18,19 +19,35 @@ trait Arbitraries {
     for {
       issuerClaim         <- Gen.option(Gen.alphaStr)
       subjectClaim        <- Gen.option(Gen.alphaStr)
-      audienceClaim       <- Gen.listOf(Gen.alphaStr)
+      audienceClaims      <- Gen.listOf(Gen.alphaStr)
       includeJwtIdClaim   <- Arbitrary.arbitrary[Boolean]
       includeIssueAtClaim <- Arbitrary.arbitrary[Boolean]
       expiresAtOffset     <- Gen.option(genPositiveFiniteDuration)
       notBeforeOffset     <- Gen.option(genPositiveFiniteDuration)
       registered = RegisteredConfig(issuerClaim,
                                     subjectClaim,
-                                    audienceClaim,
+                                    audienceClaims,
                                     includeJwtIdClaim,
                                     includeIssueAtClaim,
                                     expiresAtOffset,
                                     notBeforeOffset)
     } yield IssuerConfig(Algorithm.none(), registered)
+  }
+
+  implicit val verifierConfigArbitrary: Arbitrary[VerifierConfig] = Arbitrary {
+    for {
+      issuerClaim    <- Gen.option(Gen.alphaStr)
+      subjectClaim   <- Gen.option(Gen.alphaStr)
+      audienceClaims <- Gen.listOf(Gen.alphaStr)
+      presenceClaims <- Gen.listOf(Gen.alphaStr).map(_.diff(audienceClaims))
+      nullClaims     <- Gen.listOf(Gen.alphaStr).map(_.diff(audienceClaims ++ presenceClaims))
+      leeway         <- Gen.option(genPositiveFiniteDuration)
+      issuedAt       <- Gen.option(genPositiveFiniteDuration)
+      expiresAt      <- Gen.option(genPositiveFiniteDuration)
+      notBefore      <- Gen.option(genPositiveFiniteDuration)
+      leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
+      providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims, presenceClaims, nullClaims)
+    } yield VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
   }
 
   implicit val simplePayloadArbitrary: Arbitrary[SimplePayload] = Arbitrary {

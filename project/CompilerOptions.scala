@@ -14,7 +14,6 @@ object CompilerOptions {
     "-language:higherKinds",         // Allow higher-kinded types
     "-language:implicitConversions", // Allow definition of implicit functions called views
     "-language:postfixOps",          // Allow postfix operator notation, such as 1 to 10 toList (not recommended)
-    "-target:jvm-1.8",               // Target platform for object files
     "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
     "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access.
     "-Xlint",                        // Enable recommended warnings

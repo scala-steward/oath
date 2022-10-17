@@ -15,7 +15,7 @@ object VerifierConfig {
 
   final case class ProvidedWithConfig(issuerClaim: Option[String],
                                       subjectClaim: Option[String],
-                                      audienceClaims: Option[String],
+                                      audienceClaims: Seq[String],
                                       presenceClaims: Seq[String],
                                       nullClaims: Seq[String]
   )
@@ -34,7 +34,7 @@ object VerifierConfig {
   private def loadProvidedWithConfigOrThrow(providedWithScoped: Config): ProvidedWithConfig = {
     val issuerClaim    = providedWithScoped.getMaybeString("issuer-claim")
     val subjectClaim   = providedWithScoped.getMaybeString("subject-claim")
-    val audienceClaim  = providedWithScoped.getMaybeString("audience-claims")
+    val audienceClaim  = providedWithScoped.getSeqString("audience-claims")
     val presenceClaims = providedWithScoped.getSeqString("presence-claims")
     val nullClaims     = providedWithScoped.getSeqString("null-claims")
     ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaim, presenceClaims, nullClaims)

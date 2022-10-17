@@ -1,29 +1,23 @@
 package oath
 
-import java.time.temporal.ChronoUnit
-import java.time.{Clock, Instant, ZoneId}
-
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import oath.NestedHeader._
 import oath.NestedPayload._
 import oath.config.IssuerConfig
-import oath.model.JwtClaims
+import oath.model.{IssueJwtError, JwtClaims}
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
-import org.scalactic.anyvals.PosInt
+import oath.utils.ClockHelper
 
 import scala.util.Try
 
+import cats.implicits.catsSyntaxEitherId
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.chaining.scalaUtilChainingOps
 
-class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting {
-
-  implicit override val generatorDrivenConfig: PropertyCheckConfiguration = PropertyCheckConfiguration(PosInt(1))
-
-  val now            = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-  implicit val clock = Clock.fixed(now, ZoneId.of("UTC"))
+class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
 
   "JwtIssuer" should {
 
@@ -101,6 +95,24 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting {
           headerResult shouldBe header
           payloadResult shouldBe payload
           jwt.token should not be empty
+      }
+
+      "issue token should fail with IllegalArgument when algorithm is set to null" in forAll { config: IssuerConfig =>
+        val jwtIssuer = new JwtIssuer(config.copy(algorithm = null))
+        val jwt       = jwtIssuer.issueJWT()
+
+        jwt shouldBe IssueJwtError.IllegalArgument("The Algorithm cannot be null.").asLeft
+      }
+
+      "issue token should fail with IllegalArgument when claim name is set to null" in forAll { config: IssuerConfig =>
+        implicit val mapClaimsEncoder: ClaimsEncoder[java.util.Map[String, Object]] = identity(_)
+
+        val jwtIssuer          = new JwtIssuer(config)
+        val stringNull: String = null
+        val nullKeyMap         = Map[String, Object](stringNull -> "value").asJava
+        val jwt                = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(nullKeyMap))
+
+        jwt shouldBe IssueJwtError.IllegalArgument("The Custom Claim's name can't be null.").asLeft
       }
     }
   }
