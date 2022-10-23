@@ -9,9 +9,14 @@ import oath.model.{JwtClaims, JwtVerifyError}
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 import oath.utils.ClockHelper
 
+import cats.implicits.catsSyntaxEitherId
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
+
+  val defaultConfig = VerifierConfig(Algorithm.none(),
+                                     ProvidedWithConfig(None, None, Nil, Nil, Nil),
+                                     LeewayWindowConfig(None, None, None, None))
 
   "JwtVerifier" should {
 
@@ -44,39 +49,121 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
 
       val jwtVerifier = new JwtVerifier(config)
 
-      val verified = jwtVerifier.verifyNoClaimsJwt(token)
+      val verified = jwtVerifier.verifyJwtNoClaims(token)
 
       verified.value shouldBe JwtClaims.NoClaims
     }
 
-    "fail to verify token with VerificationError" in {
-      val config = VerifierConfig(Algorithm.none(),
-                                  ProvidedWithConfig(issuerClaim = Some("issuer"), None, Nil, Nil, Nil),
-                                  LeewayWindowConfig(None, None, None, None))
+    "verify a token with header" in forAll { nestedHeader: NestedHeader =>
       val token = JWT
         .create()
-        .sign(config.algorithm)
+        .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader))
+        .sign(defaultConfig.algorithm)
 
-      val jwtVerifier = new JwtVerifier(config)
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtHeader[NestedHeader](token)
 
-      val verified = jwtVerifier.verifyNoClaimsJwt(token)
-
-      verified shouldBe Left(JwtVerifyError.VerificationError("The Claim 'iss' is not present in the JWT."))
+      verified.value shouldBe JwtClaims.JwtClaimsH(nestedHeader)
     }
 
-    "fail to verify token when algorithm is null" in {
-      val config = VerifierConfig(Algorithm.none(),
-                                  ProvidedWithConfig(issuerClaim = Some("issuer"), None, Nil, Nil, Nil),
-                                  LeewayWindowConfig(None, None, None, None))
+    "verify a token with payload" in forAll { nestedPayload: NestedPayload =>
+      val token = JWT
+        .create()
+        .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload))
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtPayload[NestedPayload](token)
+
+      verified.value shouldBe JwtClaims.JwtClaimsP(nestedPayload)
+    }
+
+    "verify a token with header & payload" in forAll { (nestedPayload: NestedPayload, nestedHeader: NestedHeader) =>
+      val token = JWT
+        .create()
+        .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload))
+        .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader))
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwt[NestedHeader, NestedPayload](token)
+
+      verified.value shouldBe JwtClaims.JwtClaimsHP(nestedHeader, nestedPayload)
+    }
+
+    "fail to verify token with VerificationError when provided with claims are not meet criteria" in {
+      val config = defaultConfig.copy(providedWith = defaultConfig.providedWith.copy(issuerClaim = Some("issuer")))
       val token = JWT
         .create()
         .sign(config.algorithm)
 
       val jwtVerifier = new JwtVerifier(config)
 
-      val verified = jwtVerifier.verifyNoClaimsJwt(token)
+      val verified = jwtVerifier.verifyJwtNoClaims(token)
 
-      verified shouldBe Left(JwtVerifyError.VerificationError("The Claim 'iss' is not present in the JWT."))
+      verified shouldBe JwtVerifyError.VerificationError("The Claim 'iss' is not present in the JWT.").asLeft
+    }
+
+    "fail to verify token with IllegalArgument when null algorithm is provided" in forAll { config: VerifierConfig =>
+      val token = JWT
+        .create()
+        .sign(config.algorithm)
+
+      val jwtVerifier = new JwtVerifier(config.copy(algorithm = null))
+
+      val verified = jwtVerifier.verifyJwtNoClaims(token)
+
+      verified shouldBe JwtVerifyError.IllegalArgument("The Algorithm cannot be null.").asLeft
+    }
+
+    "fail to verify token with AlgorithmMismatch when jwt header algorithm doesn't match with verify" in forAll {
+      config: VerifierConfig =>
+        val token = JWT
+          .create()
+          .sign(config.algorithm)
+
+        val jwtVerifier = new JwtVerifier(config.copy(algorithm = Algorithm.HMAC256("secret")))
+
+        val verified = jwtVerifier.verifyJwtNoClaims(token)
+
+        verified shouldBe
+          JwtVerifyError
+            .AlgorithmMismatch("The provided Algorithm doesn't match the one defined in the JWT's Header.")
+            .asLeft
+    }
+
+    "fail to verify token with SignatureVerificationError when secrets provided are wrong" in forAll {
+      config: VerifierConfig =>
+        val token = JWT
+          .create()
+          .sign(Algorithm.HMAC256("secret1"))
+
+        val jwtVerifier = new JwtVerifier(config.copy(algorithm = Algorithm.HMAC256("secret2")))
+
+        val verified = jwtVerifier.verifyJwtNoClaims(token)
+
+        verified shouldBe
+          JwtVerifyError
+            .SignatureVerificationError(
+              "The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256")
+            .asLeft
+    }
+
+    "fail to verify token with TokenExpired when JWT expires" in {
+      val expiresAt = now.minusSeconds(1)
+      val token = JWT
+        .create()
+        .withExpiresAt(expiresAt)
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+
+      val verified = jwtVerifier.verifyJwtNoClaims(token)
+
+      verified shouldBe
+        JwtVerifyError
+          .TokenExpired(s"The Token has expired on $expiresAt.")
+          .asLeft
     }
   }
 }

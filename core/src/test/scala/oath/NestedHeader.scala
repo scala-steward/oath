@@ -24,7 +24,7 @@ object NestedHeader {
     val name         = decodedJwt.getHeaderClaim("name").asString()
     val mappingClaim = decodedJwt.getHeaderClaim("mapping").asMap()
     val x = mappingClaim.asScala.toMap.collect { case (key, value: java.util.Map[_, _]) =>
-      val map = value.asScala.toMap.map{ case (k,v) => k.asInstanceOf[String] -> v}
+      val map = value.asScala.toMap.collect{ case (k,v) => k.asInstanceOf[String] -> v}
       key -> SimpleHeader(map("name").asInstanceOf[String],
                           map("data").asInstanceOf[java.util.ArrayList[String]].asScala.toList)
     }

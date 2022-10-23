@@ -8,11 +8,12 @@ import oath.model.{JwtClaims, JwtVerifyError}
 
 import scala.util.control.Exception.allCatch
 
+import cats.implicits.toTraverseOps
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier] = None) {
 
-  private val jwtVerifier =
+  private lazy val jwtVerifier =
     customJWTVerifier.getOrElse(
       JWT
         .require(config.algorithm)
@@ -53,13 +54,19 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
         case e                                 => JwtVerifyError.UnexpectedError(e.getMessage)
       }
 
+  private def safeDecode[T](decodedObject: => Either[JwtVerifyError, T]): Either[JwtVerifyError, T] =
+    allCatch
+      .withTry(decodedObject)
+      .sequence
+      .flatMap(maybeT => maybeT.toEither.left.map(error => JwtVerifyError.DecodingError(Nil, error.getMessage)))
+
   private def verify(token: String): Either[JwtVerifyError, DecodedJWT] =
     handler(
       jwtVerifier
         .verify(token)
     )
 
-  def verifyNoClaimsJwt(token: String): Either[JwtVerifyError, JwtClaims.NoClaims.type] =
+  def verifyJwtNoClaims(token: String): Either[JwtVerifyError, JwtClaims.NoClaims.type] =
     verify(token).map(_ => JwtClaims.NoClaims)
 
   def verifyJwt[H, P](token: String)(implicit
@@ -68,15 +75,23 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
   ): Either[JwtVerifyError, JwtClaims.JwtClaimsHP[H, P]] =
     for {
       decodedJwt <- verify(token)
-      header     <- headerDecoder.decode(decodedJwt)
-      payload    <- payloadDecoder.decode(decodedJwt)
+      header     <- safeDecode(headerDecoder.decode(decodedJwt))
+      payload    <- safeDecode(payloadDecoder.decode(decodedJwt))
     } yield JwtClaims.JwtClaimsHP(header, payload)
 
-  def verifyJwt[P](token: String)(implicit
+  def verifyJwtHeader[H](token: String)(implicit
+      headerDecoder: ClaimsDecoder[H]
+  ): Either[JwtVerifyError, JwtClaims.JwtClaimsH[H]] =
+    for {
+      decodedJwt <- verify(token)
+      payload    <- safeDecode(headerDecoder.decode(decodedJwt))
+    } yield JwtClaims.JwtClaimsH(payload)
+
+  def verifyJwtPayload[P](token: String)(implicit
       payloadDecoder: ClaimsDecoder[P]
   ): Either[JwtVerifyError, JwtClaims.JwtClaimsP[P]] =
     for {
       decodedJwt <- verify(token)
-      payload    <- payloadDecoder.decode(decodedJwt)
+      payload    <- safeDecode(payloadDecoder.decode(decodedJwt))
     } yield JwtClaims.JwtClaimsP(payload)
 }
