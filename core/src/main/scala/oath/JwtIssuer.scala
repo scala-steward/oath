@@ -19,13 +19,13 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
 
   private def setPredefinedClaims(builder: JWTCreator.Builder): JWTCreator.Builder =
     builder
-      .tap(builder => config.registered.issuerClaim.map(builder.withIssuer))
-      .tap(builder => config.registered.subjectClaim.map(builder.withSubject))
-      .tap(builder => builder.withAudience(config.registered.audienceClaims: _*))
+      .tap(builder => config.registered.issuerClaim.map(nonEmptyString => builder.withIssuer(nonEmptyString.value)))
+      .tap(builder => config.registered.subjectClaim.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
+      .tap(builder => builder.withAudience(config.registered.audienceClaims.map(_.value).toArray: _*))
       .tap(builder =>
         if (config.registered.includeJwtIdClaim)
           config.registered.issuerClaim
-            .map(_ + "-")
+            .map(_.value + "-")
             .getOrElse("")
             .pipe(prefix => builder.withJWTId(prefix + UUID.randomUUID().toString)))
       .tap { builder =>
@@ -40,9 +40,9 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
 
   private def handler[T <: JwtClaims](jwt: => Jwt[T]): Either[IssueJwtError, Jwt[T]] =
     allCatch.withTry(jwt).toEither.left.map {
-      case e: IllegalArgumentException     => IssueJwtError.IllegalArgument(e.getMessage)
-      case e: JWTCreationException         => IssueJwtError.JwtCreationError(e.getMessage)
-      case e                               => IssueJwtError.UnexpectedError(e.getMessage)
+      case e: IllegalArgumentException => IssueJwtError.IllegalArgument(e.getMessage)
+      case e: JWTCreationException     => IssueJwtError.JwtCreationError(e.getMessage)
+      case e                           => IssueJwtError.UnexpectedError(e.getMessage)
     }
 
   def issueJWT(): Either[IssueJwtError, Jwt[JwtClaims.NoClaims.type]] =

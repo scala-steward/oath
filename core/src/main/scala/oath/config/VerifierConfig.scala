@@ -2,6 +2,7 @@ package oath.config
 
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.{Config, ConfigFactory}
+import eu.timepit.refined.types.string.NonEmptyString
 import oath.config.VerifierConfig._
 
 import scala.concurrent.duration.FiniteDuration
@@ -13,11 +14,11 @@ final case class VerifierConfig(algorithm: Algorithm,
 
 object VerifierConfig {
 
-  final case class ProvidedWithConfig(issuerClaim: Option[String],
-                                      subjectClaim: Option[String],
-                                      audienceClaims: Seq[String],
-                                      presenceClaims: Seq[String],
-                                      nullClaims: Seq[String]
+  final case class ProvidedWithConfig(issuerClaim: Option[NonEmptyString],
+                                      subjectClaim: Option[NonEmptyString],
+                                      audienceClaims: Seq[NonEmptyString],
+                                      presenceClaims: Seq[NonEmptyString],
+                                      nullClaims: Seq[NonEmptyString]
   )
 
   final case class LeewayWindowConfig(leeway: Option[FiniteDuration],
@@ -32,11 +33,11 @@ object VerifierConfig {
   private val LeewayWindowConfigObject = "leeway-window"
 
   private def loadProvidedWithConfigOrThrow(providedWithScoped: Config): ProvidedWithConfig = {
-    val issuerClaim    = providedWithScoped.getMaybeString("issuer-claim")
-    val subjectClaim   = providedWithScoped.getMaybeString("subject-claim")
-    val audienceClaim  = providedWithScoped.getSeqString("audience-claims")
-    val presenceClaims = providedWithScoped.getSeqString("presence-claims")
-    val nullClaims     = providedWithScoped.getSeqString("null-claims")
+    val issuerClaim    = providedWithScoped.getMaybeNonEmptyString("issuer-claim")
+    val subjectClaim   = providedWithScoped.getMaybeNonEmptyString("subject-claim")
+    val audienceClaim  = providedWithScoped.getSeqNonEmptyString("audience-claims")
+    val presenceClaims = providedWithScoped.getSeqNonEmptyString("presence-claims")
+    val nullClaims     = providedWithScoped.getSeqNonEmptyString("null-claims")
     ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaim, presenceClaims, nullClaims)
   }
 

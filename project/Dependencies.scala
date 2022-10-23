@@ -7,12 +7,13 @@ object Dependencies {
     val scalaTest          = "3.2.14"
     val scalaTestPlusCheck = "3.2.11.0"
     val scalacheck         = "1.17.0"
-    val javaJWT            = "4.0.0"
+    val javaJWT            = "4.1.0"
     val config             = "1.4.2"
     val cats               = "2.8.0"
     val bcprov             = "1.70"
-    val logbackClassic     = "1.4.3"
+    val logbackClassic     = "1.4.4"
     val scalaLogging       = "3.9.5"
+    val refined            = "0.10.1"
   }
 
   object Testing {
@@ -21,6 +22,13 @@ object Dependencies {
     val scalacheck         = "org.scalacheck"    %% "scalacheck"      % Versions.scalacheck         % Test
 
     val all = Seq(scalaTest, scalaTestPlusCheck, scalacheck)
+  }
+
+  object Refined {
+    val core       = "eu.timepit" %% "refined"            % Versions.refined
+    val scalacheck = "eu.timepit" %% "refined-scalacheck" % Versions.refined % Test
+
+    val all = Seq(core, scalacheck)
   }
 
   object Utils {
@@ -39,5 +47,5 @@ object Dependencies {
     val all = Seq(javaJWT)
   }
 
-  lazy val core = libraryDependencies ++= Testing.all ++ Auth0.all ++ Utils.all
+  lazy val core = libraryDependencies ++= Testing.all ++ Refined.all ++ Auth0.all ++ Utils.all
 }

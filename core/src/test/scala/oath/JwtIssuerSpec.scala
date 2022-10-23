@@ -2,6 +2,7 @@ package oath
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import eu.timepit.refined.types.string.NonEmptyString
 import oath.NestedHeader._
 import oath.NestedPayload._
 import oath.config.IssuerConfig
@@ -12,12 +13,17 @@ import oath.utils.ClockHelper
 import scala.util.Try
 
 import cats.implicits.catsSyntaxEitherId
-import scala.concurrent.duration.DurationInt
+import cats.implicits.toTraverseOps
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
+
+  val jwtVerifier = JWT
+    .require(Algorithm.none())
+    .acceptLeeway(1)
+    .build()
 
   "JwtIssuer" should {
 
@@ -26,19 +32,31 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
       "issue token with predefine configure claims" in forAll { config: IssuerConfig =>
         val jwtIssuer   = new JwtIssuer(config, clock)
         val noClaimsJwt = jwtIssuer.issueJWT().value
-        val verifier    = JWT.require(config.algorithm).acceptLeeway(1.minutes.toSeconds).build()
 
-        Option(verifier.verify(noClaimsJwt.token).getIssuer) shouldBe config.registered.issuerClaim
-        Option(verifier.verify(noClaimsJwt.token).getSubject) shouldBe config.registered.subjectClaim
-        Option(verifier.verify(noClaimsJwt.token).getAudience).toSeq
-          .flatMap(_.asScala) shouldBe config.registered.audienceClaims
-        Try(verifier.verify(noClaimsJwt.token).getId).toOption
-        Try(verifier.verify(noClaimsJwt.token).getIssuedAt.toInstant).toOption shouldBe Option.when(
-          config.registered.includeIssueAtClaim)(now)
-        Try(verifier.verify(noClaimsJwt.token).getExpiresAt.toInstant).toOption shouldBe
+        val decodedJWT = jwtVerifier.verify(noClaimsJwt.token)
+
+        Option(decodedJWT.getIssuer).flatMap(NonEmptyString.unapply) shouldBe config.registered.issuerClaim
+
+        Option(decodedJWT.getSubject).flatMap(NonEmptyString.unapply) shouldBe config.registered.subjectClaim
+
+        Option(decodedJWT.getAudience)
+          .map(_.asScala.toSeq)
+          .sequence
+          .flatten
+          .flatMap(NonEmptyString.unapply) shouldBe config.registered.audienceClaims
+
+        if (config.registered.includeJwtIdClaim)
+          Option(decodedJWT.getId) should not be empty
+        else
+          Option(decodedJWT.getId) shouldBe empty
+
+        Try(decodedJWT.getIssuedAt.toInstant).toOption shouldBe Option.when(config.registered.includeIssueAtClaim)(now)
+
+        Try(decodedJWT.getExpiresAt.toInstant).toOption shouldBe
           Option.when(config.registered.expiresAtOffset.nonEmpty)(
             now.plusMillis(config.registered.expiresAtOffset.value.toMillis))
-        Try(verifier.verify(noClaimsJwt.token).getNotBefore.toInstant).toOption shouldBe Option.when(
+
+        Try(decodedJWT.getNotBefore.toInstant).toOption shouldBe Option.when(
           config.registered.notBeforeOffset.nonEmpty)(now
           .plusMillis(config.registered.notBeforeOffset.value.toMillis))
       }
@@ -54,9 +72,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
         val jwtIssuer = new JwtIssuer(config)
         val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsH(header)).value
 
-        val headerResult = JWT
-          .require(Algorithm.none())
-          .build()
+        val headerResult = jwtVerifier
           .verify(jwt.token)
           .pipe(nestedHeaderDecoder.decode)
           .value
@@ -69,9 +85,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
         val jwtIssuer = new JwtIssuer(config)
         val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(payload)).value
 
-        val nestedPayloadResult = JWT
-          .require(Algorithm.none())
-          .build()
+        val nestedPayloadResult = jwtVerifier
           .verify(jwt.token)
           .pipe(nestedPayloadDecoder.decode)
           .value
@@ -85,9 +99,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
           val jwtIssuer = new JwtIssuer(config)
           val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsHP(header, payload)).value
 
-          val (headerResult, payloadResult) = JWT
-            .require(Algorithm.none())
-            .build()
+          val (headerResult, payloadResult) = jwtVerifier
             .verify(jwt.token)
             .pipe(decodedJwt =>
               (nestedHeaderDecoder.decode(decodedJwt).value, nestedPayloadDecoder.decode(decodedJwt).value))

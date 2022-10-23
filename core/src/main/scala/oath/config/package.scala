@@ -1,6 +1,7 @@
 package oath
 
 import com.typesafe.config.{Config, ConfigException}
+import eu.timepit.refined.types.string.NonEmptyString
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.control.Exception.allCatch
@@ -17,10 +18,11 @@ package object config {
       default
     }
 
-    def getMaybeString(path: String): Option[String] =
+    def getMaybeNonEmptyString(path: String): Option[NonEmptyString] =
       allCatch
         .withTry(config.getString(path))
         .map(_.some)
+        .map(_.map(NonEmptyString.unsafeFrom))
         .recover(ifMissingDefault(None))
         .get
 
@@ -37,11 +39,12 @@ package object config {
         .recover(ifMissingDefault(false))
         .get
 
-    def getSeqString(path: String): Seq[String] =
+    def getSeqNonEmptyString(path: String): Seq[NonEmptyString] =
       allCatch
         .withTry(config.getStringList(path))
         .map(_.asScala.toSeq)
-        .recover(ifMissingDefault(Seq.empty[String]))
+        .map(_.map(NonEmptyString.unsafeFrom))
+        .recover(ifMissingDefault(Seq.empty[NonEmptyString]))
         .get
 
   }

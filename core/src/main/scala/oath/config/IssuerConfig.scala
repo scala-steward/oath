@@ -2,6 +2,7 @@ package oath.config
 
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.{Config, ConfigFactory}
+import eu.timepit.refined.types.string.NonEmptyString
 import oath.config.IssuerConfig.RegisteredConfig
 
 import scala.concurrent.duration.FiniteDuration
@@ -10,9 +11,9 @@ final case class IssuerConfig(algorithm: Algorithm, registered: RegisteredConfig
 
 object IssuerConfig {
 
-  final case class RegisteredConfig(issuerClaim: Option[String],
-                                    subjectClaim: Option[String],
-                                    audienceClaims: Seq[String],
+  final case class RegisteredConfig(issuerClaim: Option[NonEmptyString],
+                                    subjectClaim: Option[NonEmptyString],
+                                    audienceClaims: Seq[NonEmptyString],
                                     includeJwtIdClaim: Boolean,
                                     includeIssueAtClaim: Boolean,
                                     expiresAtOffset: Option[FiniteDuration],
@@ -24,9 +25,9 @@ object IssuerConfig {
   private val RegisteredConfigObject = "registered"
 
   private def loadRegisterScoped(registeredScoped: Config): RegisteredConfig = {
-    val issuerClaim          = registeredScoped.getMaybeString("issuer-claim")
-    val subjectClaim         = registeredScoped.getMaybeString("subject-claim")
-    val audienceClaim        = registeredScoped.getSeqString("audience-claims")
+    val issuerClaim          = registeredScoped.getMaybeNonEmptyString("issuer-claim")
+    val subjectClaim         = registeredScoped.getMaybeNonEmptyString("subject-claim")
+    val audienceClaim        = registeredScoped.getSeqNonEmptyString("audience-claims")
     val includeIssuedAtClaim = registeredScoped.getBooleanDefaultFalse("include-issued-at-claim")
     val includeJwtIdClaim    = registeredScoped.getBooleanDefaultFalse("include-jwt-id-claim")
     val expiresAtOffset      = registeredScoped.getMaybeFiniteDuration("expires-at-offset")

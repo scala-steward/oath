@@ -4,7 +4,7 @@ import com.auth0.jwt.exceptions._
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.{JWT, JWTVerifier}
 import oath.config.VerifierConfig
-import oath.model.{JwtClaims, VerifyJwtError}
+import oath.model.{JwtClaims, JwtVerifyError}
 
 import scala.util.control.Exception.allCatch
 
@@ -16,11 +16,18 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
     customJWTVerifier.getOrElse(
       JWT
         .require(config.algorithm)
-        .tap(jwtVerification => config.providedWith.issuerClaim.map(jwtVerification.withIssuer))
-        .tap(jwtVerification => config.providedWith.subjectClaim.map(jwtVerification.withSubject))
-        .tap(jwtVerification => config.providedWith.audienceClaims.map(jwtVerification.withAudience(_)))
-        .tap(jwtVerification => config.providedWith.presenceClaims.map(jwtVerification.withClaimPresence))
-        .tap(jwtVerification => config.providedWith.nullClaims.map(jwtVerification.withNullClaim))
+        .tap(jwtVerification =>
+          config.providedWith.issuerClaim.map(nonEmptyString => jwtVerification.withIssuer(nonEmptyString.value)))
+        .tap(jwtVerification =>
+          config.providedWith.subjectClaim.map(nonEmptyString => jwtVerification.withSubject(nonEmptyString.value)))
+        .tap(jwtVerification =>
+          if (config.providedWith.audienceClaims.nonEmpty)
+            jwtVerification.withAudience(config.providedWith.audienceClaims.map(_.value).toArray: _*))
+        .tap(jwtVerification =>
+          config.providedWith.presenceClaims.map(nonEmptyString =>
+            jwtVerification.withClaimPresence(nonEmptyString.value)))
+        .tap(jwtVerification =>
+          config.providedWith.nullClaims.map(nonEmptyString => jwtVerification.withNullClaim(nonEmptyString.value)))
         .tap(jwtVerification =>
           config.leewayWindow.leeway.map(duration => jwtVerification.acceptLeeway(duration.toSeconds)))
         .tap(jwtVerification =>
@@ -32,35 +39,33 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
         .build()
     )
 
-  private def handler(decodedJWT: => DecodedJWT): Either[VerifyJwtError, DecodedJWT] =
+  private def handler(decodedJWT: => DecodedJWT): Either[JwtVerifyError, DecodedJWT] =
     allCatch
       .withTry(decodedJWT)
       .toEither
       .left
       .map {
-        case e: IllegalArgumentException       => VerifyJwtError.IllegalArgument(e.getMessage)
-        case e: AlgorithmMismatchException     => VerifyJwtError.AlgorithmMismatch(e.getMessage)
-        case e: SignatureVerificationException => VerifyJwtError.SignatureVerificationError(e.getMessage)
-        case e: TokenExpiredException          => VerifyJwtError.TokenExpired(e.getMessage)
-        case e: JWTVerificationException       => VerifyJwtError.VerificationError(e.getMessage)
-        case e: MissingClaimException          => VerifyJwtError.MissingClaim(e.getMessage)
-        case e: IncorrectClaimException        => VerifyJwtError.IncorrectClaim(e.getMessage)
-        case e                                 => VerifyJwtError.UnexpectedError(e.getMessage)
+        case e: IllegalArgumentException       => JwtVerifyError.IllegalArgument(e.getMessage)
+        case e: AlgorithmMismatchException     => JwtVerifyError.AlgorithmMismatch(e.getMessage)
+        case e: SignatureVerificationException => JwtVerifyError.SignatureVerificationError(e.getMessage)
+        case e: TokenExpiredException          => JwtVerifyError.TokenExpired(e.getMessage)
+        case e: JWTVerificationException       => JwtVerifyError.VerificationError(e.getMessage)
+        case e                                 => JwtVerifyError.UnexpectedError(e.getMessage)
       }
 
-  private def verify(token: String): Either[VerifyJwtError, DecodedJWT] =
+  private def verify(token: String): Either[JwtVerifyError, DecodedJWT] =
     handler(
       jwtVerifier
         .verify(token)
     )
 
-  def verifyJwt(token: String): Either[VerifyJwtError, JwtClaims.NoClaims.type] =
+  def verifyNoClaimsJwt(token: String): Either[JwtVerifyError, JwtClaims.NoClaims.type] =
     verify(token).map(_ => JwtClaims.NoClaims)
 
   def verifyJwt[H, P](token: String)(implicit
       headerDecoder: ClaimsDecoder[H],
       payloadDecoder: ClaimsDecoder[P]
-  ): Either[VerifyJwtError, JwtClaims.JwtClaimsHP[H, P]] =
+  ): Either[JwtVerifyError, JwtClaims.JwtClaimsHP[H, P]] =
     for {
       decodedJwt <- verify(token)
       header     <- headerDecoder.decode(decodedJwt)
@@ -69,7 +74,7 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
 
   def verifyJwt[P](token: String)(implicit
       payloadDecoder: ClaimsDecoder[P]
-  ): Either[VerifyJwtError, JwtClaims.JwtClaimsP[P]] =
+  ): Either[JwtVerifyError, JwtClaims.JwtClaimsP[P]] =
     for {
       decodedJwt <- verify(token)
       payload    <- payloadDecoder.decode(decodedJwt)

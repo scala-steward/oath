@@ -1,25 +1,31 @@
 package oath.testkit
 
 import com.auth0.jwt.algorithms.Algorithm
+import eu.timepit.refined.types.string.NonEmptyString
 import oath.NestedHeader.SimpleHeader
 import oath.NestedPayload.SimplePayload
-import oath.config.{IssuerConfig, VerifierConfig}
 import oath.config.IssuerConfig.RegisteredConfig
 import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
+import oath.config.{IssuerConfig, VerifierConfig}
 import oath.{NestedHeader, NestedPayload}
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.concurrent.duration.Duration
 
+import scala.concurrent.duration.DurationInt
+
 trait Arbitraries {
 
-  val genPositiveFiniteDuration = Gen.posNum[Long].map(Duration.fromNanos)
+  val genPositiveFiniteDuration        = Gen.posNum[Long].map(Duration.fromNanos)
+  val genPositiveFiniteDurationSeconds = Gen.posNum[Int].map(_.seconds)
+  val genNonEmptyString =
+    Gen.nonEmptyListOf[Char](Gen.alphaChar).map(_.mkString).map(NonEmptyString.unsafeFrom)
 
   implicit val issuerConfigArbitrary: Arbitrary[IssuerConfig] = Arbitrary {
     for {
-      issuerClaim         <- Gen.option(Gen.alphaStr)
-      subjectClaim        <- Gen.option(Gen.alphaStr)
-      audienceClaims      <- Gen.listOf(Gen.alphaStr)
+      issuerClaim         <- Gen.option(genNonEmptyString)
+      subjectClaim        <- Gen.option(genNonEmptyString)
+      audienceClaims      <- Gen.listOf(genNonEmptyString)
       includeJwtIdClaim   <- Arbitrary.arbitrary[Boolean]
       includeIssueAtClaim <- Arbitrary.arbitrary[Boolean]
       expiresAtOffset     <- Gen.option(genPositiveFiniteDuration)
@@ -36,15 +42,15 @@ trait Arbitraries {
 
   implicit val verifierConfigArbitrary: Arbitrary[VerifierConfig] = Arbitrary {
     for {
-      issuerClaim    <- Gen.option(Gen.alphaStr)
-      subjectClaim   <- Gen.option(Gen.alphaStr)
-      audienceClaims <- Gen.listOf(Gen.alphaStr)
-      presenceClaims <- Gen.listOf(Gen.alphaStr).map(_.diff(audienceClaims))
-      nullClaims     <- Gen.listOf(Gen.alphaStr).map(_.diff(audienceClaims ++ presenceClaims))
-      leeway         <- Gen.option(genPositiveFiniteDuration)
-      issuedAt       <- Gen.option(genPositiveFiniteDuration)
-      expiresAt      <- Gen.option(genPositiveFiniteDuration)
-      notBefore      <- Gen.option(genPositiveFiniteDuration)
+      issuerClaim    <- Gen.option(genNonEmptyString)
+      subjectClaim   <- Gen.option(genNonEmptyString)
+      audienceClaims <- Gen.listOf(genNonEmptyString)
+      presenceClaims <- Gen.listOf(genNonEmptyString).map(_.diff(audienceClaims))
+      nullClaims     <- Gen.listOf(genNonEmptyString).map(_.diff(audienceClaims ++ presenceClaims))
+      leeway         <- Gen.option(genPositiveFiniteDurationSeconds)
+      issuedAt       <- Gen.option(genPositiveFiniteDurationSeconds)
+      expiresAt      <- Gen.option(genPositiveFiniteDurationSeconds)
+      notBefore      <- Gen.option(genPositiveFiniteDurationSeconds)
       leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
       providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims, presenceClaims, nullClaims)
     } yield VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
