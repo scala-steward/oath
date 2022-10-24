@@ -1,5 +1,3 @@
 package oath.config
 
-class VerifierLoaderSpec {
-
-}
+class VerifierLoaderSpec {}

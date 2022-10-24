@@ -10,6 +10,9 @@ import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 import oath.utils.ClockHelper
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
@@ -89,6 +92,94 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
       val verified    = jwtVerifier.verifyJwt[NestedHeader, NestedPayload](token)
 
       verified.value shouldBe JwtClaims.JwtClaimsHP(nestedHeader, nestedPayload)
+    }
+
+    "fail to decode a token with header" in forAll { nestedHeader: NestedHeader =>
+      val header = NestedHeader.nestedHeaderEncoder.encode(nestedHeader).asScala.tail
+      val token = JWT
+        .create()
+        .withHeader(header.asJava)
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtHeader[NestedHeader](token)
+
+      verified shouldBe Left(JwtVerifyError.DecodingError(Seq("name"), "Fail to decode NestedHeader."))
+    }
+
+    "fail to decode a token with payload" in forAll { nestedPayload: NestedPayload =>
+      val payload = NestedPayload.nestedPayloadEncoder.encode(nestedPayload).asScala.tail
+      val token = JWT
+        .create()
+        .withPayload(payload.asJava)
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtPayload[NestedPayload](token)
+
+      verified shouldBe Left(JwtVerifyError.DecodingError(Seq("name"), "Fail to decode NestedPayload."))
+    }
+
+    "fail to decode a token with header & payload" in forAll {
+      (nestedPayload: NestedPayload, nestedHeader: NestedHeader) =>
+        val header  = NestedHeader.nestedHeaderEncoder.encode(nestedHeader).asScala.tail
+        val payload = NestedPayload.nestedPayloadEncoder.encode(nestedPayload).asScala.tail
+        val token = JWT
+          .create()
+          .withHeader(header.asJava)
+          .withPayload(payload.asJava)
+          .sign(defaultConfig.algorithm)
+
+        val jwtVerifier = new JwtVerifier(defaultConfig)
+        val verified    = jwtVerifier.verifyJwt[NestedHeader, NestedPayload](token)
+
+        verified shouldBe Left(
+          JwtVerifyError.DecodingErrors(
+            JwtVerifyError.DecodingError(Seq("name"), "Fail to decode NestedHeader.").some,
+            JwtVerifyError.DecodingError(Seq("name"), "Fail to decode NestedPayload.").some
+          ))
+    }
+
+    "fail to decode a token with header if exception raised in decoder" in forAll { nestedHeader: NestedHeader =>
+      val token = JWT
+        .create()
+        .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader.copy(name = "boom")))
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtHeader[NestedHeader](token)
+
+      verified shouldBe Left(JwtVerifyError.DecodingError(Nil, "boom"))
+    }
+
+    "fail to decode a token with payload if exception raised in decoder" in forAll { nestedPayload: NestedPayload =>
+      val token = JWT
+        .create()
+        .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload.copy(name = "boom")))
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwtPayload[NestedPayload](token)
+
+      verified shouldBe Left(JwtVerifyError.DecodingError(Nil, "boom"))
+    }
+
+    "fail to decode a token with header & payload if exception raised in decoder" in forAll {
+      (nestedPayload: NestedPayload, nestedHeader: NestedHeader) =>
+        val token = JWT
+          .create()
+          .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader.copy(name = "boom")))
+          .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload.copy(name = "boom")))
+          .sign(defaultConfig.algorithm)
+
+        val jwtVerifier = new JwtVerifier(defaultConfig)
+        val verified    = jwtVerifier.verifyJwt[NestedHeader, NestedPayload](token)
+
+        verified shouldBe Left(
+          JwtVerifyError.DecodingErrors(
+            JwtVerifyError.DecodingError(Nil, "boom").some,
+            JwtVerifyError.DecodingError(Nil, "boom").some
+          ))
     }
 
     "fail to verify token with VerificationError when provided with claims are not meet criteria" in {

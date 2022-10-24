@@ -1,5 +1,3 @@
 package oath.config
 
-class AlgorithmLoaderSpec {
-
-}
+class AlgorithmLoaderSpec {}

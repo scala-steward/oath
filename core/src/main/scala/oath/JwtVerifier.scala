@@ -1,5 +1,6 @@
 package oath
 
+import cats.syntax.all._
 import com.auth0.jwt.exceptions._
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.{JWT, JWTVerifier}
@@ -54,7 +55,9 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
         case e                                 => JwtVerifyError.UnexpectedError(e.getMessage)
       }
 
-  private def safeDecode[T](decodedObject: => Either[JwtVerifyError, T]): Either[JwtVerifyError, T] =
+  private def safeDecode[T](
+      decodedObject: => Either[JwtVerifyError.DecodingError, T]
+  ): Either[JwtVerifyError.DecodingError, T] =
     allCatch
       .withTry(decodedObject)
       .sequence
@@ -73,11 +76,15 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
       headerDecoder: ClaimsDecoder[H],
       payloadDecoder: ClaimsDecoder[P]
   ): Either[JwtVerifyError, JwtClaims.JwtClaimsHP[H, P]] =
-    for {
-      decodedJwt <- verify(token)
-      header     <- safeDecode(headerDecoder.decode(decodedJwt))
-      payload    <- safeDecode(payloadDecoder.decode(decodedJwt))
-    } yield JwtClaims.JwtClaimsHP(header, payload)
+    verify(token).flatMap { decodedJwt =>
+      (safeDecode(headerDecoder.decode(decodedJwt)).toValidatedNec,
+       safeDecode(payloadDecoder.decode(decodedJwt)).toValidatedNec).mapN { case (header, payload) =>
+        JwtClaims.JwtClaimsHP(header, payload)
+      }.toEither.left
+        .map(_.toList)
+        .left
+        .map(list => JwtVerifyError.DecodingErrors(list.headOption, list.tail.headOption))
+    }
 
   def verifyJwtHeader[H](token: String)(implicit
       headerDecoder: ClaimsDecoder[H]
