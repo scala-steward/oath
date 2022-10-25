@@ -20,9 +20,9 @@ object IssuerConfig {
                                     notBeforeOffset: Option[FiniteDuration]
   )
 
-  private val IssuerConfigObject     = "issuer"
-  private val AlgorithmConfigObject  = "algorithm"
-  private val RegisteredConfigObject = "registered"
+  private val IssuerConfigLocation     = "issuer"
+  private val AlgorithmConfigLocation  = "algorithm"
+  private val RegisteredConfigLocation = "registered"
 
   private def loadRegisterScoped(registeredScoped: Config): RegisteredConfig = {
     val issuerClaim          = registeredScoped.getMaybeNonEmptyString("issuer-claim")
@@ -44,9 +44,9 @@ object IssuerConfig {
   }
 
   def loadOrThrow(config: Config = ConfigFactory.load()): IssuerConfig = {
-    val issuerScoped = config.getConfig(IssuerConfigObject)
-    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigObject), forIssuing = true)
-    val registered   = loadRegisterScoped(issuerScoped.getConfig(RegisteredConfigObject))
+    val issuerScoped = config.getConfig(IssuerConfigLocation)
+    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = true)
+    val registered   = loadRegisterScoped(issuerScoped.getConfig(RegisteredConfigLocation))
 
     IssuerConfig(algorithm, registered)
   }

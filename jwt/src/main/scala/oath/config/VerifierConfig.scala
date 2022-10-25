@@ -27,10 +27,10 @@ object VerifierConfig {
                                       notBefore: Option[FiniteDuration]
   )
 
-  private val VerifierConfigObject     = "issuer"
-  private val AlgorithmConfigObject    = "algorithm"
-  private val ProvidedWithConfigObject = "provided-with"
-  private val LeewayWindowConfigObject = "leeway-window"
+  private val VerifierConfigLocation     = "issuer"
+  private val AlgorithmConfigLocation    = "algorithm"
+  private val ProvidedWithConfigLocation = "provided-with"
+  private val LeewayWindowConfigLocation = "leeway-window"
 
   private def loadProvidedWithConfigOrThrow(providedWithScoped: Config): ProvidedWithConfig = {
     val issuerClaim    = providedWithScoped.getMaybeNonEmptyString("issuer-claim")
@@ -50,10 +50,10 @@ object VerifierConfig {
   }
 
   def loadOrThrow(config: Config = ConfigFactory.load()): VerifierConfig = {
-    val verifierScoped = config.getConfig(VerifierConfigObject)
-    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigObject), forIssuing = false)
-    val providedWith = loadProvidedWithConfigOrThrow(verifierScoped.getConfig(ProvidedWithConfigObject))
-    val leewayWindow = loadLeewayWindowConfigOrThrow(verifierScoped.getConfig(LeewayWindowConfigObject))
+    val verifierScoped = config.getConfig(VerifierConfigLocation)
+    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = false)
+    val providedWith = loadProvidedWithConfigOrThrow(verifierScoped.getConfig(ProvidedWithConfigLocation))
+    val leewayWindow = loadLeewayWindowConfigOrThrow(verifierScoped.getConfig(LeewayWindowConfigLocation))
 
     VerifierConfig(algorithm, providedWith, leewayWindow)
   }

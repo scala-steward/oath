@@ -1,7 +1,7 @@
 package oath.config
 
 import java.io.{File, FileReader}
-import java.security.interfaces.{ECKey, RSAKey}
+import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
@@ -15,9 +15,6 @@ import scala.util.chaining.scalaUtilChainingOps
 
 object AlgorithmLoader {
 
-  private val SignKeyConfigObject   = "sign-key"
-  private val VerifyKeyConfigObject = "verify-key"
-
   private val SecretKeyConfigValue         = "secret-key"
   private val PrivateKeyPemPathConfigValue = "private-key-pem-path"
   private val PublicKeyPemPathConfigValue  = "public-key-pem-path"
@@ -25,25 +22,44 @@ object AlgorithmLoader {
   private val RSAKeyFactoryInstance = "RSA"
   private val ECKeyFactoryInstance  = "EC"
 
-  private def loadSecretKeyOrThrow(algorithmScoped: Config, forIssuing: Boolean): String =
-    if (forIssuing) algorithmScoped.getConfig(SignKeyConfigObject).getString(SecretKeyConfigValue)
-    else algorithmScoped.getConfig(VerifyKeyConfigObject).getString(SecretKeyConfigValue)
+  private val RSAKeyFactory = KeyFactory.getInstance(RSAKeyFactoryInstance)
+  private val ECKeyFactory  = KeyFactory.getInstance(ECKeyFactoryInstance)
 
-  private def loadRSAKeyOrThrow(algorithmScoped: Config, forIssuing: Boolean): RSAKey = {
-    val RSAKeyFactory = KeyFactory.getInstance(RSAKeyFactoryInstance)
-    if (forIssuing) loadPrivateKey(algorithmScoped, RSAKeyFactory).asInstanceOf[RSAKey]
-    else loadPublicKey(algorithmScoped, RSAKeyFactory).asInstanceOf[RSAKey]
-  }
+  private def loadSecretKeyOrThrow(algorithmScoped: Config): String =
+    algorithmScoped.getString(SecretKeyConfigValue)
 
-  private def loadECKeyOrThrow(algorithmScoped: Config, forIssuing: Boolean): ECKey = {
-    val ECKeyFactory = KeyFactory.getInstance(ECKeyFactoryInstance)
-    if (forIssuing) loadPrivateKey(algorithmScoped, ECKeyFactory).asInstanceOf[ECKey]
-    else loadPublicKey(algorithmScoped, ECKeyFactory).asInstanceOf[ECKey]
-  }
+  private def loadRSAKeyOrThrow(algorithmScoped: Config,
+                                forIssuing: Boolean
+  ): (Option[RSAPrivateKey], Option[RSAPublicKey]) =
+    if (forIssuing) {
+      val privateKey: RSAPrivateKey = loadPrivateKey(algorithmScoped, RSAKeyFactory)
+        .map(_.asInstanceOf[RSAPrivateKey])
+        .fold(error => throw new IllegalArgumentException(s"Fail to load RSA Private key pem file: $error"), identity)
+      (Some(privateKey), None)
+    } else {
+      val publicKey: RSAPublicKey = loadPublicKey(algorithmScoped, RSAKeyFactory)
+        .map(_.asInstanceOf[RSAPublicKey])
+        .fold(error => throw new IllegalArgumentException(s"Fail to load RSA Public key pem file: $error"), identity)
+      (None, Some(publicKey))
+    }
+
+  private def loadECKeyOrThrow(algorithmScoped: Config,
+                               forIssuing: Boolean
+  ): (Option[ECPrivateKey], Option[ECPublicKey]) =
+    if (forIssuing) {
+      val privateKey: ECPrivateKey = loadPrivateKey(algorithmScoped, ECKeyFactory)
+        .map(_.asInstanceOf[ECPrivateKey])
+        .fold(error => throw new IllegalArgumentException(s"Failed to load EC Private key pem file: $error"), identity)
+      (Some(privateKey), None)
+    } else {
+      val publicKey: ECPublicKey = loadPrivateKey(algorithmScoped, ECKeyFactory)
+        .map(_.asInstanceOf[ECPublicKey])
+        .fold(error => throw new IllegalArgumentException(s"Failed to load EC Public key pem file: $error"), identity)
+      (None, Some(publicKey))
+    }
 
   private def loadPublicKey(algorithmScoped: Config, keyFactory: KeyFactory): Either[String, PublicKey] =
     algorithmScoped
-      .getConfig(VerifyKeyConfigObject)
       .getString(PublicKeyPemPathConfigValue)
       .pipe(privateKeyPemPath =>
         Using(new FileReader(new File(privateKeyPemPath))) { reader =>
@@ -52,11 +68,10 @@ object AlgorithmLoader {
             .pipe(new X509EncodedKeySpec(_))
             .pipe(keyFactory.generatePublic)
         }.toEither.left
-          .map(error => s"Failed to load public key pem file: ${error.getMessage}"))
+          .map(error => s"public key pem file error [${error.getMessage}]"))
 
   private def loadPrivateKey(signatureScoped: Config, keyFactory: KeyFactory): Either[String, PrivateKey] =
     signatureScoped
-      .getConfig(SignKeyConfigObject)
       .getString(PrivateKeyPemPathConfigValue)
       .pipe(privateKeyPemPath =>
         Using(new FileReader(new File(privateKeyPemPath))) { reader =>
@@ -65,30 +80,38 @@ object AlgorithmLoader {
             .pipe(new PKCS8EncodedKeySpec(_))
             .pipe(keyFactory.generatePrivate)
         }.toEither.left
-          .map(error => s"Failed to load private key pem file: ${error.getMessage}"))
+          .map(error => s"private key pem file: ${error.getMessage}"))
 
-  def loadAlgorithmOrThrow(algorithmScoped: Config, forIssuing: Boolean): Algorithm =
-    algorithmScoped.getString("name").trim.toUpperCase match {
+  def loadAlgorithmOrThrow(algorithmScoped: Config, forIssuing: Boolean): Algorithm = {
+    val algorithm = algorithmScoped.getString("name")
+    algorithm.trim.toUpperCase match {
       case "HS256" =>
-        loadSecretKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.HMAC256)
+        loadSecretKeyOrThrow(algorithmScoped).pipe(Algorithm.HMAC256)
       case "HS384" =>
-        loadSecretKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.HMAC384)
+        loadSecretKeyOrThrow(algorithmScoped).pipe(Algorithm.HMAC384)
       case "HS512" =>
-        loadSecretKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.HMAC512)
+        loadSecretKeyOrThrow(algorithmScoped).pipe(Algorithm.HMAC512)
       case "RS256" =>
-        loadRSAKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.RSA256)
+        val (maybePrivateKey, maybePublicKey) = loadRSAKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.RSA256(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "RS384" =>
-        loadRSAKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.RSA256)
+        val (maybePrivateKey, maybePublicKey) = loadRSAKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.RSA384(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "RS512" =>
-        loadRSAKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.RSA256)
+        val (maybePrivateKey, maybePublicKey) = loadRSAKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.RSA512(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "ES256" =>
-        loadECKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.ECDSA256)
+        val (maybePrivateKey, maybePublicKey) = loadECKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.ECDSA256(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "ES384" =>
-        loadECKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.ECDSA384)
+        val (maybePrivateKey, maybePublicKey) = loadECKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.ECDSA384(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "ES512" =>
-        loadECKeyOrThrow(algorithmScoped, forIssuing).pipe(Algorithm.ECDSA512)
+        val (maybePrivateKey, maybePublicKey) = loadECKeyOrThrow(algorithmScoped, forIssuing)
+        Algorithm.ECDSA512(maybePublicKey.orNull, maybePrivateKey.orNull)
       case "NONE" => Algorithm.none()
-      case other =>
-        throw new IllegalArgumentException(s"Unsupported signature algorithm: $other")
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported signature algorithm: $algorithm")
     }
+  }
 }
