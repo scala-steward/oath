@@ -68,64 +68,64 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
         noClaimsJwt.token should not be empty
       }
 
-      "issue token with header claims" in forAll { (config: IssuerConfig, header: NestedHeader) =>
-        val jwtIssuer = new JwtIssuer(config)
-        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsH(header)).value
-
-        val headerResult = jwtVerifier
-          .verify(jwt.token)
-          .pipe(nestedHeaderDecoder.decode)
-          .value
-
-        headerResult shouldBe header
-        jwt.token should not be empty
-      }
-
-      "issue token with payload claims" in forAll { (config: IssuerConfig, payload: NestedPayload) =>
-        val jwtIssuer = new JwtIssuer(config)
-        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(payload)).value
-
-        val nestedPayloadResult = jwtVerifier
-          .verify(jwt.token)
-          .pipe(nestedPayloadDecoder.decode)
-          .value
-
-        nestedPayloadResult shouldBe payload
-        jwt.token should not be empty
-      }
-
-      "issue token with header & payload claims" in forAll {
-        (config: IssuerConfig, header: NestedHeader, payload: NestedPayload) =>
-          val jwtIssuer = new JwtIssuer(config)
-          val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsHP(header, payload)).value
-
-          val (headerResult, payloadResult) = jwtVerifier
-            .verify(jwt.token)
-            .pipe(decodedJwt =>
-              (nestedHeaderDecoder.decode(decodedJwt).value, nestedPayloadDecoder.decode(decodedJwt).value))
-
-          headerResult shouldBe header
-          payloadResult shouldBe payload
-          jwt.token should not be empty
-      }
-
-      "issue token should fail with IllegalArgument when algorithm is set to null" in forAll { config: IssuerConfig =>
-        val jwtIssuer = new JwtIssuer(config.copy(algorithm = null))
-        val jwt       = jwtIssuer.issueJWT()
-
-        jwt shouldBe IssueJwtError.IllegalArgument("The Algorithm cannot be null.").asLeft
-      }
-
-      "issue token should fail with IllegalArgument when claim name is set to null" in forAll { config: IssuerConfig =>
-        implicit val mapClaimsEncoder: ClaimsEncoder[java.util.Map[String, Object]] = identity(_)
-
-        val jwtIssuer          = new JwtIssuer(config)
-        val stringNull: String = null
-        val nullKeyMap         = Map[String, Object](stringNull -> "value").asJava
-        val jwt                = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(nullKeyMap))
-
-        jwt shouldBe IssueJwtError.IllegalArgument("The Custom Claim's name can't be null.").asLeft
-      }
+//      "issue token with header claims" in forAll { (config: IssuerConfig, header: NestedHeader) =>
+//        val jwtIssuer = new JwtIssuer(config)
+//        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsH(header)).value
+//
+//        val headerResult = jwtVerifier
+//          .verify(jwt.token)
+//          .pipe(nestedHeaderDecoder.decode)
+//          .value
+//
+//        headerResult shouldBe header
+//        jwt.token should not be empty
+//      }
+//
+//      "issue token with payload claims" in forAll { (config: IssuerConfig, payload: NestedPayload) =>
+//        val jwtIssuer = new JwtIssuer(config)
+//        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(payload)).value
+//
+//        val nestedPayloadResult = jwtVerifier
+//          .verify(jwt.token)
+//          .pipe(nestedPayloadDecoder.decode)
+//          .value
+//
+//        nestedPayloadResult shouldBe payload
+//        jwt.token should not be empty
+//      }
+//
+//      "issue token with header & payload claims" in forAll {
+//        (config: IssuerConfig, header: NestedHeader, payload: NestedPayload) =>
+//          val jwtIssuer = new JwtIssuer(config)
+//          val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsHP(header, payload)).value
+//
+//          val (headerResult, payloadResult) = jwtVerifier
+//            .verify(jwt.token)
+//            .pipe(decodedJwt =>
+//              (nestedHeaderDecoder.decode(decodedJwt).value, nestedPayloadDecoder.decode(decodedJwt).value))
+//
+//          headerResult shouldBe header
+//          payloadResult shouldBe payload
+//          jwt.token should not be empty
+//      }
+//
+//      "issue token should fail with IllegalArgument when algorithm is set to null" in forAll { config: IssuerConfig =>
+//        val jwtIssuer = new JwtIssuer(config.copy(algorithm = null))
+//        val jwt       = jwtIssuer.issueJWT()
+//
+//        jwt shouldBe IssueJwtError.IllegalArgument("The Algorithm cannot be null.").asLeft
+//      }
+//
+//      "issue token should fail with IllegalArgument when claim name is set to null" in forAll { config: IssuerConfig =>
+//        implicit val mapClaimsEncoder: ClaimsEncoder[java.util.Map[String, Object]] = identity(_)
+//
+//        val jwtIssuer          = new JwtIssuer(config)
+//        val stringNull: String = null
+//        val nullKeyMap         = Map[String, Object](stringNull -> "value").asJava
+//        val jwt                = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(nullKeyMap))
+//
+//        jwt shouldBe IssueJwtError.IllegalArgument("The Custom Claim's name can't be null.").asLeft
+//      }
     }
   }
 }
