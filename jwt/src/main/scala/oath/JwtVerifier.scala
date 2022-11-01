@@ -27,11 +27,6 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
           if (config.providedWith.audienceClaims.nonEmpty)
             jwtVerification.withAudience(config.providedWith.audienceClaims.map(_.value).toArray: _*))
         .tap(jwtVerification =>
-          config.providedWith.presenceClaims.map(nonEmptyString =>
-            jwtVerification.withClaimPresence(nonEmptyString.value)))
-        .tap(jwtVerification =>
-          config.providedWith.nullClaims.map(nonEmptyString => jwtVerification.withNullClaim(nonEmptyString.value)))
-        .tap(jwtVerification =>
           config.leewayWindow.leeway.map(duration => jwtVerification.acceptLeeway(duration.toSeconds)))
         .tap(jwtVerification =>
           config.leewayWindow.issuedAt.map(duration => jwtVerification.acceptIssuedAt(duration.toSeconds)))

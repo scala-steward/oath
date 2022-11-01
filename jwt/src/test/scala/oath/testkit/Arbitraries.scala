@@ -52,14 +52,12 @@ trait Arbitraries {
       issuerClaim    <- Gen.option(genNonEmptyString)
       subjectClaim   <- Gen.option(genNonEmptyString)
       audienceClaims <- Gen.listOf(genNonEmptyString)
-      presenceClaims <- Gen.listOf(genNonEmptyString).map(_.diff(audienceClaims))
-      nullClaims     <- Gen.listOf(genNonEmptyString).map(_.diff(audienceClaims ++ presenceClaims))
       leeway         <- Gen.option(genPositiveFiniteDurationSeconds)
       issuedAt       <- Gen.option(genPositiveFiniteDurationSeconds)
       expiresAt      <- Gen.option(genPositiveFiniteDurationSeconds)
       notBefore      <- Gen.option(genPositiveFiniteDurationSeconds)
       leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
-      providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims, presenceClaims, nullClaims)
+      providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims)
     } yield VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
   }
 

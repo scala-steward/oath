@@ -18,9 +18,8 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
 
   val dataField = "data"
 
-  val defaultConfig = VerifierConfig(Algorithm.none(),
-                                     ProvidedWithConfig(None, None, Nil, Nil, Nil),
-                                     LeewayWindowConfig(None, None, None, None))
+  val defaultConfig =
+    VerifierConfig(Algorithm.none(), ProvidedWithConfig(None, None, Nil), LeewayWindowConfig(None, None, None, None))
 
   "JwtVerifier" should {
 
@@ -33,10 +32,6 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
         .tap(builder =>
           config.providedWith.subjectClaim.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
         .tap(builder => builder.withAudience(config.providedWith.audienceClaims.map(_.value): _*))
-        .tap(builder =>
-          config.providedWith.presenceClaims.map(nonEmptyString => builder.withClaim(nonEmptyString.value, "value")))
-        .tap(builder =>
-          config.providedWith.nullClaims.map(nonEmptyString => builder.withNullClaim(nonEmptyString.value)))
         .tap(builder =>
           config.leewayWindow.leeway.map { leeway =>
             builder.withExpiresAt(now.plusSeconds(leeway.toSeconds - 1))

@@ -16,9 +16,7 @@ object VerifierConfig {
 
   final case class ProvidedWithConfig(issuerClaim: Option[NonEmptyString],
                                       subjectClaim: Option[NonEmptyString],
-                                      audienceClaims: Seq[NonEmptyString],
-                                      presenceClaims: Seq[NonEmptyString],
-                                      nullClaims: Seq[NonEmptyString]
+                                      audienceClaims: Seq[NonEmptyString]
   )
 
   final case class LeewayWindowConfig(leeway: Option[FiniteDuration],
@@ -33,12 +31,10 @@ object VerifierConfig {
   private val LeewayWindowConfigLocation = "leeway-window"
 
   private def loadProvidedWithConfigOrThrow(providedWithScoped: Config): ProvidedWithConfig = {
-    val issuerClaim    = providedWithScoped.getMaybeNonEmptyString("issuer-claim")
-    val subjectClaim   = providedWithScoped.getMaybeNonEmptyString("subject-claim")
-    val audienceClaim  = providedWithScoped.getSeqNonEmptyString("audience-claims")
-    val presenceClaims = providedWithScoped.getSeqNonEmptyString("presence-claims")
-    val nullClaims     = providedWithScoped.getSeqNonEmptyString("null-claims")
-    ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaim, presenceClaims, nullClaims)
+    val issuerClaim   = providedWithScoped.getMaybeNonEmptyString("issuer-claim")
+    val subjectClaim  = providedWithScoped.getMaybeNonEmptyString("subject-claim")
+    val audienceClaim = providedWithScoped.getSeqNonEmptyString("audience-claims")
+    ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaim)
   }
 
   private def loadLeewayWindowConfigOrThrow(leewayWindowScoped: Config): LeewayWindowConfig = {
@@ -51,7 +47,7 @@ object VerifierConfig {
 
   def loadOrThrow(config: Config = ConfigFactory.load()): VerifierConfig = {
     val verifierScoped = config.getConfig(VerifierConfigLocation)
-    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = false)
+    val algorithm = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = false)
     val providedWith = loadProvidedWithConfigOrThrow(verifierScoped.getConfig(ProvidedWithConfigLocation))
     val leewayWindow = loadLeewayWindowConfigOrThrow(verifierScoped.getConfig(LeewayWindowConfigLocation))
 
