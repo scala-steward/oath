@@ -1,11 +1,13 @@
 package oath
 
 import java.time.Instant
-import java.util.Date
-import java.{lang, util}
-import com.auth0.jwt.interfaces.{Claim, DecodedJWT}
+
+import com.auth0.jwt.interfaces.Claim
 import eu.timepit.refined.types.string.NonEmptyString
 
+import scala.util.Try
+
+import cats.implicits.toTraverseOps
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 package object syntax {
@@ -17,10 +19,7 @@ package object syntax {
 
     def asOptionInstant: Option[Instant] = Option(claim.asInstant())
 
-    def asSeq: Seq[NonEmptyString] = claim.asList(classOf[String]).asScala.toSeq.flatMap(NonEmptyString.unapply)
-  }
-
-  private[oath] implicit class DecodedJWTOps(private val decodedJwt: DecodedJWT) {
-
+    def asSeqNonEmptyString: Seq[NonEmptyString] =
+      Try(claim.asList(classOf[String]).asScala.toSeq).toOption.sequence.flatMap(_.flatMap(NonEmptyString.unapply))
   }
 }

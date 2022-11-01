@@ -1,37 +1,27 @@
 package oath
 
+import io.circe.generic.semiauto._
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
 import oath.NestedPayload.SimplePayload
-import oath.model.JwtVerifyError.DecodingError
-import oath.syntax._
-
-import scala.jdk.CollectionConverters._
+import oath.model.JwtVerifyError
 
 final case class NestedPayload(name: String, mapping: Map[String, SimplePayload])
 
 object NestedPayload {
   final case class SimplePayload(name: String, data: List[String])
 
-  implicit val nestedPayloadEncoder: ClaimsEncoder[NestedPayload] = nestedPayload =>
-    Map(
-      "name" -> nestedPayload.name,
-      "mapping" -> nestedPayload.mapping.view
-        .mapValues(value => Map("name" -> value.name, "data" -> value.data.asJava).asJava)
-        .toMap
-        .asJava
-    ).asJava
+  implicit val simplePayloadCirceEncoder: Encoder[SimplePayload] = deriveEncoder[SimplePayload]
+  implicit val simplePayloadCirceDecoder: Decoder[SimplePayload] = deriveDecoder[SimplePayload]
 
-  implicit val nestedPayloadDecoder: ClaimsDecoder[NestedPayload] = decodedJwt => {
-    val name =
-      decodedJwt.getClaim("name").asOptionString.toRight(DecodingError(Seq("name"), "Fail to decode NestedPayload."))
-    val mappingClaim = decodedJwt.getClaim("mapping").asMap()
-    val x = mappingClaim.asScala.toMap.collect { case (key, value: java.util.Map[_, _]) =>
-      val map = value.asScala.toMap.map { case (k, v) => k.asInstanceOf[String] -> v }
-      key -> SimplePayload(map("name").asInstanceOf[String],
-                           map("data").asInstanceOf[java.util.ArrayList[String]].asScala.toList)
-    }
+  implicit val nestedPayloadCirceEncoder: Encoder[NestedPayload] = deriveEncoder[NestedPayload]
+  implicit val nestedPayloadCirceDecoder: Decoder[NestedPayload] = deriveDecoder[NestedPayload]
 
-    if (name.exists(_ == "boom")) throw new RuntimeException("boom")
-    name.map(NestedPayload(_, x))
-  }
-
+  implicit val nestedPayloadEncoder: ClaimsEncoder[NestedPayload] = nestedPayload => nestedPayload.asJson.noSpaces
+  implicit val nestedPayloadDecoder: ClaimsDecoder[NestedPayload] = nestedPayloadJson =>
+    parse(nestedPayloadJson).left
+      .map(parsingFailure => JwtVerifyError.DecodingError(parsingFailure.message, parsingFailure.underlying))
+      .flatMap(_.as[NestedPayload].left.map(decodingFailure =>
+        JwtVerifyError.DecodingError(decodingFailure.getMessage(), decodingFailure.getCause)))
 }

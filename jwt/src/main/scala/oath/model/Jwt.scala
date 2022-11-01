@@ -1,3 +1,5 @@
 package oath.model
 
-final case class Jwt[C <: JwtClaims](claims: C, token: String)
+import eu.timepit.refined.types.string.NonEmptyString
+
+final case class Jwt[+C](claims: C, token: NonEmptyString)

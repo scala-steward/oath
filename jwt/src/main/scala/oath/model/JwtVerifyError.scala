@@ -10,9 +10,7 @@ object JwtVerifyError {
 
   final case class AlgorithmMismatch(error: String) extends JwtVerifyError
 
-  final case class DecodingError(fields: Seq[String], message: String) extends JwtVerifyError {
-    val error = s"$message with fields: [${fields.mkString(",")}]"
-  }
+  final case class DecodingError(error: String, underlying: Throwable) extends JwtVerifyError
 
   final case class DecodingErrors(headerDecodingError: Option[DecodingError],
                                   payloadDecodingError: Option[DecodingError]

@@ -2,20 +2,21 @@ package oath
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import eu.timepit.refined.auto._
+import eu.timepit.refined.types.string.NonEmptyString
+import oath.NestedHeader._
+import oath.NestedPayload._
 import oath.config.VerifierConfig
 import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
-import oath.model.{JwtClaims, JwtVerifyError}
+import oath.model._
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 import oath.utils.ClockHelper
 
-import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
 import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
+
+  val dataField = "data"
 
   val defaultConfig = VerifierConfig(Algorithm.none(),
                                      ProvidedWithConfig(None, None, Nil, Nil, Nil),
@@ -23,77 +24,80 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
 
   "JwtVerifier" should {
 
-//    "verify token with prerequisite configurations" in forAll { config: VerifierConfig =>
-//      val token = JWT
-//        .create()
-//        .tap(builder => config.providedWith.issuerClaim.map(nonEmptyString => builder.withIssuer(nonEmptyString.value)))
-//        .tap(builder =>
-//          config.providedWith.subjectClaim.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
-//        .tap(builder => builder.withAudience(config.providedWith.audienceClaims.map(_.value): _*))
-//        .tap(builder =>
-//          config.providedWith.presenceClaims.map(nonEmptyString => builder.withClaim(nonEmptyString.value, "value")))
-//        .tap(builder =>
-//          config.providedWith.nullClaims.map(nonEmptyString => builder.withNullClaim(nonEmptyString.value)))
-//        .tap(builder =>
-//          config.leewayWindow.leeway.map { leeway =>
-//            builder.withExpiresAt(now.plusSeconds(leeway.toSeconds - 1))
-//            builder.withIssuedAt(now.plusSeconds(leeway.toSeconds - 1))
-//            builder.withNotBefore(now.plusSeconds(leeway.toSeconds - 1))
-//          })
-//        .tap(builder =>
-//          config.leewayWindow.expiresAt.map(expiresAt =>
-//            builder.withExpiresAt(now.plusSeconds(expiresAt.toSeconds - 1))))
-//        .tap(builder =>
-//          config.leewayWindow.issuedAt.map(issueAt => builder.withIssuedAt(now.plusSeconds(issueAt.toSeconds - 1))))
-//        .tap(builder =>
-//          config.leewayWindow.notBefore.map(notBefore =>
-//            builder.withNotBefore(now.plusSeconds(notBefore.toSeconds - 1))))
-//        .sign(config.algorithm)
-//
-//      val jwtVerifier = new JwtVerifier(config)
-//
-//      val verified = jwtVerifier.verifyJwtNoClaims(token)
-//
-//      verified.value shouldBe JwtClaims.NoClaims
-//    }
-//
-//    "verify a token with header" in forAll { nestedHeader: NestedHeader =>
-//      val token = JWT
-//        .create()
-//        .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader))
-//        .sign(defaultConfig.algorithm)
-//
-//      val jwtVerifier = new JwtVerifier(defaultConfig)
-//      val verified    = jwtVerifier.verifyJwtHeader[NestedHeader](token)
-//
-//      verified.value shouldBe JwtClaims.JwtClaimsH(nestedHeader)
-//    }
-//
-//    "verify a token with payload" in forAll { nestedPayload: NestedPayload =>
-//      val token = JWT
-//        .create()
-//        .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload))
-//        .sign(defaultConfig.algorithm)
-//
-//      val jwtVerifier = new JwtVerifier(defaultConfig)
-//      val verified    = jwtVerifier.verifyJwtPayload[NestedPayload](token)
-//
-//      verified.value shouldBe JwtClaims.JwtClaimsP(nestedPayload)
-//    }
-//
-//    "verify a token with header & payload" in forAll { (nestedPayload: NestedPayload, nestedHeader: NestedHeader) =>
-//      val token = JWT
-//        .create()
-//        .withPayload(NestedPayload.nestedPayloadEncoder.encode(nestedPayload))
-//        .withHeader(NestedHeader.nestedHeaderEncoder.encode(nestedHeader))
-//        .sign(defaultConfig.algorithm)
-//
-//      val jwtVerifier = new JwtVerifier(defaultConfig)
-//      val verified    = jwtVerifier.verifyJwt[NestedHeader, NestedPayload](token)
-//
-//      verified.value shouldBe JwtClaims.JwtClaimsHP(nestedHeader, nestedPayload)
-//    }
-//
+    "verify token with prerequisite configurations" in forAll { config: VerifierConfig =>
+      val jwtVerifier = new JwtVerifier(config)
+
+      val token = JWT
+        .create()
+        .tap(builder => config.providedWith.issuerClaim.map(nonEmptyString => builder.withIssuer(nonEmptyString.value)))
+        .tap(builder =>
+          config.providedWith.subjectClaim.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
+        .tap(builder => builder.withAudience(config.providedWith.audienceClaims.map(_.value): _*))
+        .tap(builder =>
+          config.providedWith.presenceClaims.map(nonEmptyString => builder.withClaim(nonEmptyString.value, "value")))
+        .tap(builder =>
+          config.providedWith.nullClaims.map(nonEmptyString => builder.withNullClaim(nonEmptyString.value)))
+        .tap(builder =>
+          config.leewayWindow.leeway.map { leeway =>
+            builder.withExpiresAt(now.plusSeconds(leeway.toSeconds - 1))
+            builder.withIssuedAt(now.plusSeconds(leeway.toSeconds - 1))
+            builder.withNotBefore(now.plusSeconds(leeway.toSeconds - 1))
+          })
+        .tap(builder =>
+          config.leewayWindow.expiresAt.map(expiresAt =>
+            builder.withExpiresAt(now.plusSeconds(expiresAt.toSeconds - 1))))
+        .tap(builder =>
+          config.leewayWindow.issuedAt.map(issueAt => builder.withIssuedAt(now.plusSeconds(issueAt.toSeconds - 1))))
+        .tap(builder =>
+          config.leewayWindow.notBefore.map(notBefore =>
+            builder.withNotBefore(now.plusSeconds(notBefore.toSeconds - 1))))
+        .sign(config.algorithm)
+
+      val verified = jwtVerifier.verifyJwt(JwtToken.Token(NonEmptyString.unsafeFrom(token))).toOption
+
+      verified should not be empty
+    }
+
+    "verify a token with header" in forAll { nestedHeader: NestedHeader =>
+      val token = JWT
+        .create()
+        .withHeader(
+          Map(dataField -> nestedHeaderEncoder.encode(nestedHeader)).asJava.asInstanceOf[java.util.Map[String, Object]])
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwt[NestedHeader](JwtToken.TokenH(NonEmptyString.unsafeFrom(token)))
+
+      verified.value shouldBe ClaimsH(nestedHeader)
+    }
+
+    "verify a token with payload" in forAll { nestedPayload: NestedPayload =>
+      val token = JWT
+        .create()
+        .withPayload(Map(dataField -> nestedPayloadEncoder.encode(nestedPayload)).asJava)
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified    = jwtVerifier.verifyJwt[NestedPayload](JwtToken.TokenP(NonEmptyString.unsafeFrom(token)))
+
+      verified.value shouldBe ClaimsP(nestedPayload)
+    }
+
+    "verify a token with header & payload" in forAll { (nestedPayload: NestedPayload, nestedHeader: NestedHeader) =>
+      val token = JWT
+        .create()
+        .withPayload(Map(dataField -> nestedPayloadEncoder.encode(nestedPayload)).asJava)
+        .withHeader(
+          Map(dataField -> nestedHeaderEncoder.encode(nestedHeader)).asJava.asInstanceOf[java.util.Map[String, Object]])
+        .sign(defaultConfig.algorithm)
+
+      val jwtVerifier = new JwtVerifier(defaultConfig)
+      val verified =
+        jwtVerifier.verifyJwt[NestedHeader, NestedPayload](JwtToken.TokenHP(NonEmptyString.unsafeFrom(token)))
+
+      verified.value shouldBe ClaimsHP(nestedHeader, nestedPayload)
+    }
+
 //    "fail to decode a token with header" in forAll { nestedHeader: NestedHeader =>
 //      val header = NestedHeader.nestedHeaderEncoder.encode(nestedHeader).asScala.tail
 //      val token = JWT

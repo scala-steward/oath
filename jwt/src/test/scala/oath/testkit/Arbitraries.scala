@@ -1,5 +1,7 @@
 package oath.testkit
 
+import java.time.Instant
+
 import com.auth0.jwt.algorithms.Algorithm
 import eu.timepit.refined.types.string.NonEmptyString
 import oath.NestedHeader.SimpleHeader
@@ -7,6 +9,7 @@ import oath.NestedPayload.SimplePayload
 import oath.config.IssuerConfig.RegisteredConfig
 import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
 import oath.config.{IssuerConfig, VerifierConfig}
+import oath.model.RegisteredClaims
 import oath.{NestedHeader, NestedPayload}
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -20,6 +23,10 @@ trait Arbitraries {
   val genPositiveFiniteDurationSeconds = Gen.posNum[Int].map(_.seconds)
   val genNonEmptyString =
     Gen.nonEmptyListOf[Char](Gen.alphaChar).map(_.mkString).map(NonEmptyString.unsafeFrom)
+
+  implicit lazy val arbInstant: Arbitrary[Instant] = Arbitrary(
+    Gen.chooseNum(Long.MinValue, Long.MaxValue).map(Instant.ofEpochMilli)
+  )
 
   implicit val issuerConfigArbitrary: Arbitrary[IssuerConfig] = Arbitrary {
     for {
@@ -54,6 +61,18 @@ trait Arbitraries {
       leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
       providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims, presenceClaims, nullClaims)
     } yield VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
+  }
+
+  implicit val registeredClaimsArbitrary: Arbitrary[RegisteredClaims] = Arbitrary {
+    for {
+      iss <- Gen.option(genNonEmptyString)
+      sub <- Gen.option(genNonEmptyString)
+      aud <- Gen.listOf(genNonEmptyString)
+      exp <- Gen.option(arbInstant.arbitrary)
+      nbf <- Gen.option(arbInstant.arbitrary)
+      iat <- Gen.option(arbInstant.arbitrary)
+      jti <- Gen.option(genNonEmptyString)
+    } yield RegisteredClaims(iss, sub, aud, exp, nbf, iat, jti)
   }
 
   implicit val simplePayloadArbitrary: Arbitrary[SimplePayload] = Arbitrary {

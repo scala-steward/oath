@@ -1,8 +1,8 @@
 package oath.model
 
-import eu.timepit.refined.types.string.NonEmptyString
-
 import java.time.Instant
+
+import eu.timepit.refined.types.string.NonEmptyString
 
 final case class RegisteredClaims(
     iss: Option[NonEmptyString],

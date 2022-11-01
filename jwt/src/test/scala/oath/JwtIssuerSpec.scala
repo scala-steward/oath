@@ -6,16 +6,17 @@ import eu.timepit.refined.types.string.NonEmptyString
 import oath.NestedHeader._
 import oath.NestedPayload._
 import oath.config.IssuerConfig
-import oath.model.{IssueJwtError, JwtClaims}
+import oath.model._
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 import oath.utils.ClockHelper
 
 import scala.util.Try
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with ClockHelper {
@@ -25,107 +26,140 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
     .acceptLeeway(1)
     .build()
 
+  val dataField = "data"
+
   "JwtIssuer" should {
 
     "issue jwt tokens" when {
 
       "issue token with predefine configure claims" in forAll { config: IssuerConfig =>
-        val jwtIssuer   = new JwtIssuer(config, clock)
-        val noClaimsJwt = jwtIssuer.issueJWT().value
+        val jwtIssuer = new JwtIssuer(config, clock)
+        val jwtClaims = jwtIssuer.issueJwt().value
 
-        val decodedJWT = jwtVerifier.verify(noClaimsJwt.token)
+        val decodedJWT = jwtVerifier.verify(jwtClaims.token.value)
 
         Option(decodedJWT.getIssuer).flatMap(NonEmptyString.unapply) shouldBe config.registered.issuerClaim
-
         Option(decodedJWT.getSubject).flatMap(NonEmptyString.unapply) shouldBe config.registered.subjectClaim
-
         Option(decodedJWT.getAudience)
           .map(_.asScala.toSeq)
           .sequence
           .flatten
           .flatMap(NonEmptyString.unapply) shouldBe config.registered.audienceClaims
 
+        Try(decodedJWT.getIssuedAt.toInstant).toOption shouldBe Option.when(config.registered.includeIssueAtClaim)(now)
+
         if (config.registered.includeJwtIdClaim)
           Option(decodedJWT.getId) should not be empty
         else
           Option(decodedJWT.getId) shouldBe empty
 
-        Try(decodedJWT.getIssuedAt.toInstant).toOption shouldBe Option.when(config.registered.includeIssueAtClaim)(now)
+        Try(decodedJWT.getExpiresAt.toInstant).toOption shouldBe config.registered.expiresAtOffset.map(offset =>
+          now.plusMillis(offset.toMillis))
 
-        Try(decodedJWT.getExpiresAt.toInstant).toOption shouldBe
-          Option.when(config.registered.expiresAtOffset.nonEmpty)(
-            now.plusMillis(config.registered.expiresAtOffset.value.toMillis))
-
-        Try(decodedJWT.getNotBefore.toInstant).toOption shouldBe Option.when(
-          config.registered.notBeforeOffset.nonEmpty)(now
-          .plusMillis(config.registered.notBeforeOffset.value.toMillis))
+        Try(decodedJWT.getNotBefore.toInstant).toOption shouldBe config.registered.notBeforeOffset.map(offset =>
+          now.plusMillis(offset.toMillis))
       }
 
-      "issue token with no additional claims" in forAll { config: IssuerConfig =>
-        val jwtIssuer   = new JwtIssuer(config)
-        val noClaimsJwt = jwtIssuer.issueJWT().value
+      "issue token with predefine configure claims and ad-hoc registered claims" in forAll {
+        (registeredClaims: RegisteredClaims, config: IssuerConfig) =>
+          val jwtIssuer = new JwtIssuer(config, clock)
+          val jwtClaims = jwtIssuer.issueJwt(Claims(registeredClaims)).value
 
-        noClaimsJwt.token should not be empty
+          val expectedIssuer  = registeredClaims.iss orElse config.registered.issuerClaim
+          val expectedSubject = registeredClaims.sub orElse config.registered.subjectClaim
+          val expectedAudience =
+            if (registeredClaims.aud.nonEmpty) registeredClaims.aud else config.registered.audienceClaims
+          val expectedIssuedAt = registeredClaims.iat orElse Option.when(config.registered.includeJwtIdClaim)(now)
+          val expectedExpiredAt =
+            registeredClaims.exp orElse config.registered.expiresAtOffset.map(offset => now.plusMillis(offset.toMillis))
+          val expectedNotBefore =
+            registeredClaims.nbf orElse config.registered.notBeforeOffset.map(offset => now.plusMillis(offset.toMillis))
+
+          jwtClaims.claims.registered.iss shouldBe expectedIssuer
+          jwtClaims.claims.registered.sub shouldBe expectedSubject
+          jwtClaims.claims.registered.aud shouldBe expectedAudience
+          jwtClaims.claims.registered.iat shouldBe expectedIssuedAt
+          jwtClaims.claims.registered.exp shouldBe expectedExpiredAt
+          jwtClaims.claims.registered.nbf shouldBe expectedNotBefore
+
+          if (registeredClaims.jti.nonEmpty)
+            jwtClaims.claims.registered.jti shouldBe registeredClaims.jti
+          else if (config.registered.includeJwtIdClaim)
+            jwtClaims.claims.registered.jti should not be empty
+          else jwtClaims.claims.registered.jti shouldBe empty
       }
 
-//      "issue token with header claims" in forAll { (config: IssuerConfig, header: NestedHeader) =>
-//        val jwtIssuer = new JwtIssuer(config)
-//        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsH(header)).value
-//
-//        val headerResult = jwtVerifier
-//          .verify(jwt.token)
-//          .pipe(nestedHeaderDecoder.decode)
-//          .value
-//
-//        headerResult shouldBe header
-//        jwt.token should not be empty
-//      }
-//
-//      "issue token with payload claims" in forAll { (config: IssuerConfig, payload: NestedPayload) =>
-//        val jwtIssuer = new JwtIssuer(config)
-//        val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(payload)).value
-//
-//        val nestedPayloadResult = jwtVerifier
-//          .verify(jwt.token)
-//          .pipe(nestedPayloadDecoder.decode)
-//          .value
-//
-//        nestedPayloadResult shouldBe payload
-//        jwt.token should not be empty
-//      }
-//
-//      "issue token with header & payload claims" in forAll {
-//        (config: IssuerConfig, header: NestedHeader, payload: NestedPayload) =>
-//          val jwtIssuer = new JwtIssuer(config)
-//          val jwt       = jwtIssuer.issueJWT(JwtClaims.JwtClaimsHP(header, payload)).value
-//
-//          val (headerResult, payloadResult) = jwtVerifier
-//            .verify(jwt.token)
-//            .pipe(decodedJwt =>
-//              (nestedHeaderDecoder.decode(decodedJwt).value, nestedPayloadDecoder.decode(decodedJwt).value))
-//
-//          headerResult shouldBe header
-//          payloadResult shouldBe payload
-//          jwt.token should not be empty
-//      }
-//
-//      "issue token should fail with IllegalArgument when algorithm is set to null" in forAll { config: IssuerConfig =>
-//        val jwtIssuer = new JwtIssuer(config.copy(algorithm = null))
-//        val jwt       = jwtIssuer.issueJWT()
-//
-//        jwt shouldBe IssueJwtError.IllegalArgument("The Algorithm cannot be null.").asLeft
-//      }
-//
-//      "issue token should fail with IllegalArgument when claim name is set to null" in forAll { config: IssuerConfig =>
-//        implicit val mapClaimsEncoder: ClaimsEncoder[java.util.Map[String, Object]] = identity(_)
-//
-//        val jwtIssuer          = new JwtIssuer(config)
-//        val stringNull: String = null
-//        val nullKeyMap         = Map[String, Object](stringNull -> "value").asJava
-//        val jwt                = jwtIssuer.issueJWT(JwtClaims.JwtClaimsP(nullKeyMap))
-//
-//        jwt shouldBe IssueJwtError.IllegalArgument("The Custom Claim's name can't be null.").asLeft
-//      }
+      "issue token with registered claims when decoded should have the same values with the return registered claims" in forAll {
+        (registeredClaims: RegisteredClaims, config: IssuerConfig) =>
+          val adHocRegisteredClaims =
+            registeredClaims.copy(iat = now.some, exp = now.plusSeconds(5.minutes.toSeconds).some, nbf = now.some)
+          val jwtIssuer = new JwtIssuer(config, clock)
+          val jwtClaims = jwtIssuer.issueJwt(Claims(adHocRegisteredClaims)).value
+
+          val decodedJWT = jwtVerifier.verify(jwtClaims.token.value)
+
+          Option(decodedJWT.getIssuer).flatMap(NonEmptyString.unapply) shouldBe jwtClaims.claims.registered.iss
+          Option(decodedJWT.getSubject).flatMap(NonEmptyString.unapply) shouldBe jwtClaims.claims.registered.sub
+          Option(decodedJWT.getAudience)
+            .map(_.asScala.toSeq)
+            .sequence
+            .flatten
+            .flatMap(NonEmptyString.unapply) shouldBe jwtClaims.claims.registered.aud
+          Try(decodedJWT.getIssuedAt.toInstant).toOption shouldBe jwtClaims.claims.registered.iat
+          Option(decodedJWT.getId).flatMap(NonEmptyString.unapply) shouldBe jwtClaims.claims.registered.jti
+          Try(decodedJWT.getExpiresAt.toInstant).toOption shouldBe jwtClaims.claims.registered.exp
+          Try(decodedJWT.getNotBefore.toInstant).toOption shouldBe jwtClaims.claims.registered.nbf
+      }
+
+      "issue token with header claims" in forAll { (config: IssuerConfig, header: NestedHeader) =>
+        val jwtIssuer = new JwtIssuer(config)
+        val jwt       = jwtIssuer.issueJwt(ClaimsH(header)).value
+
+        val result = jwtVerifier
+          .verify(jwt.token.value)
+          .pipe(_.getHeaderClaim(dataField).asString())
+          .pipe(nestedHeaderDecoder.decode)
+          .value
+
+        result shouldBe header
+      }
+
+      "issue token with payload claims" in forAll { (config: IssuerConfig, payload: NestedPayload) =>
+        val jwtIssuer = new JwtIssuer(config)
+        val jwt       = jwtIssuer.issueJwt(ClaimsP(payload)).value
+
+        val result = jwtVerifier
+          .verify(jwt.token.value)
+          .pipe(_.getClaim(dataField).asString())
+          .pipe(nestedPayloadDecoder.decode)
+          .value
+
+        result shouldBe payload
+      }
+
+      "issue token with header & payload claims" in forAll {
+        (config: IssuerConfig, header: NestedHeader, payload: NestedPayload) =>
+          val jwtIssuer = new JwtIssuer(config)
+          val jwt       = jwtIssuer.issueJwt(ClaimsHP(header, payload)).value
+
+          val (headerResult, payloadResult) = jwtVerifier
+            .verify(jwt.token.value)
+            .pipe(decodedJwt =>
+              decodedJwt.getHeaderClaim(dataField).asString() -> decodedJwt.getClaim(dataField).asString())
+            .pipe { case (headerJson, payloadJson) =>
+              (nestedHeaderDecoder.decode(headerJson).value, nestedPayloadDecoder.decode(payloadJson).value)
+            }
+
+          headerResult shouldBe header
+          payloadResult shouldBe payload
+      }
+
+      "issue token should fail with IllegalArgument when algorithm is set to null" in forAll { config: IssuerConfig =>
+        val jwtIssuer = new JwtIssuer(config.copy(algorithm = null))
+        val jwt       = jwtIssuer.issueJwt()
+
+        jwt shouldBe IssueJwtError.IllegalArgument("The Algorithm cannot be null.").asLeft
+      }
     }
   }
 }
