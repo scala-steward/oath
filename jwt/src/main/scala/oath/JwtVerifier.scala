@@ -102,7 +102,7 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
       payloadDecoder: ClaimsDecoder[P]
   ): Either[JwtVerifyError, ClaimsHP[H, P]] =
     verify(jwt).flatMap { decodedJwt =>
-      safeDecode(headerDecoder.decode(decodedJwt.getClaim(dataField).asString())) match {
+      safeDecode(headerDecoder.decode(decodedJwt.getHeaderClaim(dataField).asString())) match {
         case Right(header) =>
           safeDecode(payloadDecoder.decode(decodedJwt.getClaim(dataField).asString())).left
             .map(payloadDecodingError => JwtVerifyError.DecodingErrors(None, payloadDecodingError.some))
