@@ -56,6 +56,6 @@ object Dependencies {
     val all = Seq(javaJWT)
   }
 
-  lazy val core =
+  lazy val jwtCore =
     libraryDependencies ++= Testing.all ++ Refined.all ++ Auth0.all ++ Utils.all ++ Circe.all.map(_ % Test)
 }

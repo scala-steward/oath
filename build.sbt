@@ -10,15 +10,19 @@ lazy val root = Projects
   .settings(Aliases.all)
   .aggregate(modules: _*)
 
-lazy val jwt = Projects
-  .createModule("jwt")
-  .settings(Dependencies.core)
+lazy val jwtCore = Projects
+  .createModule("jwt-core", "jwt/core")
+  .settings(Dependencies.jwtCore)
 
-lazy val csrf = Projects
-  .createModule("csrf")
-  .settings(Dependencies.core)
+lazy val jwtCirce = Projects
+  .createModule("jwt-circe", "jwt/circe")
+  .dependsOn(jwtCore)
+
+lazy val csrfCore = Projects
+  .createModule("csrf-core", "csrf/core")
 
 lazy val modules: Seq[ProjectReference] = Seq(
-  jwt,
-  csrf
+  jwtCore,
+  jwtCirce,
+  csrfCore
 )
