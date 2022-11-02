@@ -18,6 +18,9 @@ object NestedPayload {
   implicit val nestedPayloadCirceEncoder: Encoder[NestedPayload] = deriveEncoder[NestedPayload]
   implicit val nestedPayloadCirceDecoder: Decoder[NestedPayload] = deriveDecoder[NestedPayload]
 
+  implicit val simplePayloadEncoder: ClaimsEncoder[SimplePayload] = simplePayload => simplePayload.asJson.noSpaces
+  implicit val simplePayloadDecoder: ClaimsDecoder[SimplePayload] = _ => throw new RuntimeException("Boom")
+
   implicit val nestedPayloadEncoder: ClaimsEncoder[NestedPayload] = nestedPayload => nestedPayload.asJson.noSpaces
   implicit val nestedPayloadDecoder: ClaimsDecoder[NestedPayload] = nestedPayloadJson =>
     parse(nestedPayloadJson).left

@@ -50,7 +50,7 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
     )
   }
 
-  private def handler[T](jwt: => Jwt[T]): Either[IssueJwtError, Jwt[T]] =
+  private def handler[T <: JwtClaims](jwt: => Jwt[T]): Either[IssueJwtError, Jwt[T]] =
     allCatch.withTry(jwt).toEither.left.map {
       case e: IllegalArgumentException => IssueJwtError.IllegalArgument(e.getMessage)
       case e: JWTCreationException     => IssueJwtError.JwtCreationError(e.getMessage)
@@ -58,8 +58,8 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
     }
 
   def issueJwt(
-      claims: Claims = Claims()
-  ): Either[IssueJwtError, Jwt[Claims]] =
+      claims: JwtClaims.Claims = JwtClaims.Claims()
+  ): Either[IssueJwtError, Jwt[JwtClaims.Claims]] =
     handler(
       jwtBuilder
         .pipe(_ -> setRegisteredClaims(claims.registered))
@@ -67,13 +67,13 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
           setPredefinedClaims(builder, registeredClaims).sign(config.algorithm) -> registeredClaims
         }
         .pipe { case (token, registeredClaims) =>
-          Jwt(Claims(registeredClaims), NonEmptyString.unsafeFrom(token))
+          Jwt(JwtClaims.Claims(registeredClaims), NonEmptyString.unsafeFrom(token))
         }
     )
 
-  def issueJwt[H](claims: ClaimsH[H])(implicit
+  def issueJwt[H](claims: JwtClaims.ClaimsH[H])(implicit
       claimsEncoder: ClaimsEncoder[H]
-  ): Either[IssueJwtError, Jwt[ClaimsH[H]]] =
+  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsH[H]]] =
     handler(
       jwtBuilder
         .tap(builder =>
@@ -90,9 +90,9 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
         }
     )
 
-  def issueJwt[P](claims: ClaimsP[P])(implicit
+  def issueJwt[P](claims: JwtClaims.ClaimsP[P])(implicit
       claimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[ClaimsP[P]]] =
+  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsP[P]]] =
     handler(
       jwtBuilder
         .tap(builder =>
@@ -108,10 +108,10 @@ class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
         }
     )
 
-  def issueJwt[H, P](claims: ClaimsHP[H, P])(implicit
+  def issueJwt[H, P](claims: JwtClaims.ClaimsHP[H, P])(implicit
       headerClaimsEncoder: ClaimsEncoder[H],
       payloadClaimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[ClaimsHP[H, P]]] =
+  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsHP[H, P]]] =
     handler(
       jwtBuilder
         .tap(builder =>

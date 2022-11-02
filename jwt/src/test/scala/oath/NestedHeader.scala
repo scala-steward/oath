@@ -18,10 +18,14 @@ object NestedHeader {
   implicit val nestedHeaderCirceEncoder: Encoder[NestedHeader] = deriveEncoder[NestedHeader]
   implicit val nestedHeaderCirceDecoder: Decoder[NestedHeader] = deriveDecoder[NestedHeader]
 
+  implicit val simpleHeaderEncoder: ClaimsEncoder[SimpleHeader] = simpleHeader => simpleHeader.asJson.noSpaces
+  implicit val simpleHeaderDecoder: ClaimsDecoder[SimpleHeader] = _ => throw new RuntimeException("Boom")
+
   implicit val nestedHeaderEncoder: ClaimsEncoder[NestedHeader] = nestedHeader => nestedHeader.asJson.noSpaces
   implicit val nestedHeaderDecoder: ClaimsDecoder[NestedHeader] = nestedHeaderJson =>
     parse(nestedHeaderJson).left
       .map(parsingFailure => JwtVerifyError.DecodingError(parsingFailure.message, parsingFailure.underlying))
       .flatMap(_.as[NestedHeader].left.map(decodingFailure =>
         JwtVerifyError.DecodingError(decodingFailure.getMessage(), decodingFailure.getCause)))
+
 }

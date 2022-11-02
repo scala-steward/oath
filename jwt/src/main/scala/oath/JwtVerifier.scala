@@ -10,7 +10,6 @@ import oath.syntax._
 
 import scala.util.control.Exception.allCatch
 
-import cats.implicits.toTraverseOps
 import scala.util.chaining.scalaUtilChainingOps
 
 class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier] = None) {
@@ -67,8 +66,7 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
   ): Either[JwtVerifyError.DecodingError, T] =
     allCatch
       .withTry(decodedObject)
-      .sequence
-      .flatMap(maybeT => maybeT.toEither.left.map(error => JwtVerifyError.DecodingError(error.getMessage, error)))
+      .fold(error => JwtVerifyError.DecodingError(error.getMessage, error).asLeft, identity)
 
   private def verify(jwt: JwtToken): Either[JwtVerifyError, DecodedJWT] =
     handler(
@@ -76,31 +74,31 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
         .verify(jwt.token.value)
     )
 
-  def verifyJwt(jwt: JwtToken.Token): Either[JwtVerifyError, Claims] =
-    verify(jwt).map(getRegisteredClaims).map(Claims)
+  def verifyJwt(jwt: JwtToken.Token): Either[JwtVerifyError, JwtClaims.Claims] =
+    verify(jwt).map(getRegisteredClaims).map(JwtClaims.Claims)
 
   def verifyJwt[H](jwt: JwtToken.TokenH)(implicit
       claimsDecoder: ClaimsDecoder[H]
-  ): Either[JwtVerifyError, ClaimsH[H]] =
+  ): Either[JwtVerifyError, JwtClaims.ClaimsH[H]] =
     for {
       decodedJwt <- verify(jwt)
       payload    <- safeDecode(claimsDecoder.decode(decodedJwt.getHeaderClaim(dataField).asString()))
       registeredClaims = getRegisteredClaims(decodedJwt)
-    } yield ClaimsH(payload, registeredClaims)
+    } yield JwtClaims.ClaimsH(payload, registeredClaims)
 
   def verifyJwt[P](jwt: JwtToken.TokenP)(implicit
       claimsDecoder: ClaimsDecoder[P]
-  ): Either[JwtVerifyError, ClaimsP[P]] =
+  ): Either[JwtVerifyError, JwtClaims.ClaimsP[P]] =
     for {
       decodedJwt <- verify(jwt)
       payload    <- safeDecode(claimsDecoder.decode(decodedJwt.getClaim(dataField).asString()))
       registeredClaims = getRegisteredClaims(decodedJwt)
-    } yield ClaimsP(payload, registeredClaims)
+    } yield JwtClaims.ClaimsP(payload, registeredClaims)
 
   def verifyJwt[H, P](jwt: JwtToken.TokenHP)(implicit
       headerDecoder: ClaimsDecoder[H],
       payloadDecoder: ClaimsDecoder[P]
-  ): Either[JwtVerifyError, ClaimsHP[H, P]] =
+  ): Either[JwtVerifyError, JwtClaims.ClaimsHP[H, P]] =
     verify(jwt).flatMap { decodedJwt =>
       safeDecode(headerDecoder.decode(decodedJwt.getHeaderClaim(dataField).asString())) match {
         case Right(header) =>
@@ -108,7 +106,7 @@ class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier]
             .map(payloadDecodingError => JwtVerifyError.DecodingErrors(None, payloadDecodingError.some))
             .map { payload =>
               val registeredClaims = getRegisteredClaims(decodedJwt)
-              ClaimsHP(header, payload, registeredClaims)
+              JwtClaims.ClaimsHP(header, payload, registeredClaims)
             }
         case Left(headerDecodingError) =>
           safeDecode(payloadDecoder.decode(decodedJwt.getClaim(dataField).asString())).left.toOption

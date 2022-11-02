@@ -63,7 +63,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
       "issue token with predefine configure claims and ad-hoc registered claims" in forAll {
         (registeredClaims: RegisteredClaims, config: IssuerConfig) =>
           val jwtIssuer = new JwtIssuer(config, clock)
-          val jwtClaims = jwtIssuer.issueJwt(Claims(registeredClaims)).value
+          val jwtClaims = jwtIssuer.issueJwt(JwtClaims.Claims(registeredClaims)).value
 
           val expectedIssuer  = registeredClaims.iss orElse config.registered.issuerClaim
           val expectedSubject = registeredClaims.sub orElse config.registered.subjectClaim
@@ -94,7 +94,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
           val adHocRegisteredClaims =
             registeredClaims.copy(iat = now.some, exp = now.plusSeconds(5.minutes.toSeconds).some, nbf = now.some)
           val jwtIssuer = new JwtIssuer(config, clock)
-          val jwtClaims = jwtIssuer.issueJwt(Claims(adHocRegisteredClaims)).value
+          val jwtClaims = jwtIssuer.issueJwt(JwtClaims.Claims(adHocRegisteredClaims)).value
 
           val decodedJWT = jwtVerifier.verify(jwtClaims.token.value)
 
@@ -113,7 +113,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
 
       "issue token with header claims" in forAll { (config: IssuerConfig, header: NestedHeader) =>
         val jwtIssuer = new JwtIssuer(config)
-        val jwt       = jwtIssuer.issueJwt(ClaimsH(header)).value
+        val jwt       = jwtIssuer.issueJwt(JwtClaims.ClaimsH(header)).value
 
         val result = jwtVerifier
           .verify(jwt.token.value)
@@ -126,7 +126,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
 
       "issue token with payload claims" in forAll { (config: IssuerConfig, payload: NestedPayload) =>
         val jwtIssuer = new JwtIssuer(config)
-        val jwt       = jwtIssuer.issueJwt(ClaimsP(payload)).value
+        val jwt       = jwtIssuer.issueJwt(JwtClaims.ClaimsP(payload)).value
 
         val result = jwtVerifier
           .verify(jwt.token.value)
@@ -140,7 +140,7 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
       "issue token with header & payload claims" in forAll {
         (config: IssuerConfig, header: NestedHeader, payload: NestedPayload) =>
           val jwtIssuer = new JwtIssuer(config)
-          val jwt       = jwtIssuer.issueJwt(ClaimsHP(header, payload)).value
+          val jwt       = jwtIssuer.issueJwt(JwtClaims.ClaimsHP(header, payload)).value
 
           val (headerResult, payloadResult) = jwtVerifier
             .verify(jwt.token.value)
