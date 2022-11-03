@@ -52,7 +52,7 @@ object AlgorithmLoader {
         .fold(error => throw new IllegalArgumentException(s"Failed to load EC Private key pem file: $error"), identity)
       (Some(privateKey), None)
     } else {
-      val publicKey: ECPublicKey = loadPrivateKey(algorithmScoped, ECKeyFactory)
+      val publicKey: ECPublicKey = loadPublicKey(algorithmScoped, ECKeyFactory)
         .map(_.asInstanceOf[ECPublicKey])
         .fold(error => throw new IllegalArgumentException(s"Failed to load EC Public key pem file: $error"), identity)
       (None, Some(publicKey))

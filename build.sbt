@@ -16,7 +16,8 @@ lazy val jwtCore = Projects
 
 lazy val jwtCirce = Projects
   .createModule("jwt-circe", "jwt/circe")
-  .dependsOn(jwtCore)
+  .settings(Dependencies.jwtCirce)
+  .dependsOn(jwtCore % "compile->compile;test->test")
 
 lazy val csrfCore = Projects
   .createModule("csrf-core", "csrf/core")

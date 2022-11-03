@@ -58,4 +58,7 @@ object Dependencies {
 
   lazy val jwtCore =
     libraryDependencies ++= Testing.all ++ Refined.all ++ Auth0.all ++ Utils.all ++ Circe.all.map(_ % Test)
+
+  lazy val jwtCirce =
+    libraryDependencies ++= Circe.all
 }

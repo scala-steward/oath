@@ -26,8 +26,6 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
     .acceptLeeway(1)
     .build()
 
-  val dataField = "data"
-
   "JwtIssuer" should {
 
     "issue jwt tokens" when {
