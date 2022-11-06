@@ -82,7 +82,7 @@ object AlgorithmLoader {
         }.toEither.left
           .map(error => s"private key pem file: ${error.getMessage}"))
 
-  def loadAlgorithmOrThrow(algorithmScoped: Config, forIssuing: Boolean): Algorithm = {
+  private[config] def loadAlgorithmOrThrow(algorithmScoped: Config, forIssuing: Boolean): Algorithm = {
     val algorithm = algorithmScoped.getString("name")
     algorithm.trim.toUpperCase match {
       case "HS256" =>

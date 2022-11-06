@@ -11,20 +11,20 @@ final case class IssuerConfig(algorithm: Algorithm, registered: RegisteredConfig
 
 object IssuerConfig {
 
-  final case class RegisteredConfig(issuerClaim: Option[NonEmptyString],
-                                    subjectClaim: Option[NonEmptyString],
-                                    audienceClaims: Seq[NonEmptyString],
-                                    includeJwtIdClaim: Boolean,
-                                    includeIssueAtClaim: Boolean,
-                                    expiresAtOffset: Option[FiniteDuration],
-                                    notBeforeOffset: Option[FiniteDuration]
+  final case class RegisteredConfig(issuerClaim: Option[NonEmptyString] = None,
+                                    subjectClaim: Option[NonEmptyString] = None,
+                                    audienceClaims: Seq[NonEmptyString] = Seq.empty,
+                                    includeJwtIdClaim: Boolean = false,
+                                    includeIssueAtClaim: Boolean = false,
+                                    expiresAtOffset: Option[FiniteDuration] = None,
+                                    notBeforeOffset: Option[FiniteDuration] = None
   )
 
   private val IssuerConfigLocation     = "issuer"
   private val AlgorithmConfigLocation  = "algorithm"
   private val RegisteredConfigLocation = "registered"
 
-  private def loadRegisterScoped(registeredScoped: Config): RegisteredConfig = {
+  private def loadOrThrowRegisteredConfig(registeredScoped: Config): RegisteredConfig = {
     val issuerClaim          = registeredScoped.getMaybeNonEmptyString("issuer-claim")
     val subjectClaim         = registeredScoped.getMaybeNonEmptyString("subject-claim")
     val audienceClaim        = registeredScoped.getSeqNonEmptyString("audience-claims")
@@ -43,11 +43,18 @@ object IssuerConfig {
     )
   }
 
-  def loadOrThrow(config: Config = ConfigFactory.load()): IssuerConfig = {
-    val issuerScoped = config.getConfig(IssuerConfigLocation)
-    val algorithm    = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = true)
-    val registered   = loadRegisterScoped(issuerScoped.getConfig(RegisteredConfigLocation))
+  def loadOrThrow(config: Config): IssuerConfig = {
+    val maybeIssuerScoped = config.getMaybeConfig(IssuerConfigLocation)
+    val algorithm = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = true)
+    val registered = maybeIssuerScoped
+      .map(scoped => loadOrThrowRegisteredConfig(scoped.getConfig(RegisteredConfigLocation)))
+      .getOrElse(RegisteredConfig())
 
     IssuerConfig(algorithm, registered)
+  }
+
+  def loadOrThrow(location: String): IssuerConfig = {
+    val configLocation = ConfigFactory.load().getConfig(location)
+    loadOrThrow(configLocation)
   }
 }

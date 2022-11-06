@@ -44,7 +44,7 @@ object Dependencies {
     val config         = "com.typesafe"                % "config"          % Versions.config
     val cats           = "org.typelevel"              %% "cats-core"       % Versions.cats
     val bcprov         = "org.bouncycastle"            % "bcprov-jdk15on"  % Versions.bcprov
-    val logbackClassic = "ch.qos.logback"              % "logback-classic" % Versions.logbackClassic
+    val logbackClassic = "ch.qos.logback"              % "logback-classic" % Versions.logbackClassic % "provided"
     val scalaLogging   = "com.typesafe.scala-logging" %% "scala-logging"   % Versions.scalaLogging
 
     val all = Seq(config, cats, bcprov, logbackClassic, scalaLogging)

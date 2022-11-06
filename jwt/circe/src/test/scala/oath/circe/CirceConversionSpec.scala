@@ -1,12 +1,17 @@
 package oath.circe
 
+import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import eu.timepit.refined.types.string.NonEmptyString
 import oath.config.IssuerConfig.RegisteredConfig
 import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
 import oath.config.{IssuerConfig, VerifierConfig}
-import oath.model.{JwtClaims, JwtToken}
+import oath.model.{JwtClaims, JwtToken, JwtVerifyError}
 import oath.testkit.AnyWordSpecBase
-import oath.{JwtIssuer, JwtVerifier}
+import oath.{dataField, JwtIssuer, JwtVerifier}
+
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.chaining.scalaUtilChainingOps
 
 class CirceConversionSpec extends AnyWordSpecBase {
 
@@ -29,13 +34,23 @@ class CirceConversionSpec extends AnyWordSpecBase {
     }
 
     "convert circe (codec) to claims (encoders & decoders)" in {
-      val foo = Foo("foo", 10)
-      val jwt = jwtIssuer.issueJwt(JwtClaims.ClaimsP(foo)).value
+      val foo    = Foo("foo", 10)
+      val jwt    = jwtIssuer.issueJwt(JwtClaims.ClaimsP(foo)).value
       val claims = jwtVerifier.verifyJwt[Foo](JwtToken.TokenP(jwt.token)).value
 
       claims.payload shouldBe foo
     }
 
-    //TODO: Test error scenarios
+    "convert circe decoder to claims decoder and get error" in {
+      val fooJson = """{"name":"Hello","age":"not number"}"""
+      val jwt = JWT
+        .create()
+        .withPayload(Map(dataField -> fooJson).asJava)
+        .sign(Algorithm.none())
+        .pipe(NonEmptyString.unsafeFrom)
+      val claims = jwtVerifier.verifyJwt[Foo](JwtToken.TokenP(jwt))
+
+      claims.left.value shouldBe JwtVerifyError.DecodingError("Int: DownField(age)", null)
+    }
   }
 }

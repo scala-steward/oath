@@ -12,7 +12,7 @@ import scala.util.control.Exception.allCatch
 
 import scala.util.chaining.scalaUtilChainingOps
 
-class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier] = None) {
+final class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVerifier] = None) {
 
   private lazy val jwtVerifier =
     customJWTVerifier.getOrElse(

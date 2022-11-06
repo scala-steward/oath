@@ -15,7 +15,7 @@ import scala.util.control.Exception.allCatch
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.chaining.scalaUtilChainingOps
 
-class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
+final class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
 
   private val jwtBuilder: JWTCreator.Builder = JWT.create()
 
