@@ -1,10 +1,10 @@
 package oath
 
 import com.auth0.jwt.JWTVerifier
-import oath.config.JwtManagerConfig
+import oath.config.ManagerConfig
 import oath.model._
 
-final class JwtManager(config: JwtManagerConfig, customJWTVerifier: Option[JWTVerifier] = None) {
+final class JwtManager(config: ManagerConfig, customJWTVerifier: Option[JWTVerifier] = None) {
 
   private val issuer: JwtIssuer     = new JwtIssuer(config.issuer)
   private val verifier: JwtVerifier = new JwtVerifier(config.verifier, customJWTVerifier)

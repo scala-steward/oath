@@ -30,15 +30,15 @@ final class JwtIssuer(config: IssuerConfig, clock: Clock = Clock.systemUTC()) {
       .tap(builder => registeredClaims.nbf.map(builder.withNotBefore))
 
   private def setRegisteredClaims(adHocRegisteredClaims: RegisteredClaims): RegisteredClaims = {
-    val now = Instant.now(clock).truncatedTo(ChronoUnit.MILLIS)
+    val now = Instant.now(clock).truncatedTo(ChronoUnit.SECONDS)
     RegisteredClaims(
       iss = adHocRegisteredClaims.iss orElse config.registered.issuerClaim,
       sub = adHocRegisteredClaims.sub orElse config.registered.subjectClaim,
       aud = if (adHocRegisteredClaims.aud.isEmpty) config.registered.audienceClaims else adHocRegisteredClaims.aud,
       exp = adHocRegisteredClaims.exp orElse config.registered.expiresAtOffset.map(duration =>
-        now.plusMillis(duration.toMillis)),
+        now.plusSeconds(duration.toSeconds)),
       nbf = adHocRegisteredClaims.nbf orElse config.registered.notBeforeOffset.map(duration =>
-        now.plusMillis(duration.toMillis)),
+        now.plusSeconds(duration.toSeconds)),
       iat = adHocRegisteredClaims.iat orElse Option.when(config.registered.includeIssueAtClaim)(now),
       jti = adHocRegisteredClaims.jti orElse Option
         .when(config.registered.includeJwtIdClaim)(

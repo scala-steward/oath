@@ -8,7 +8,7 @@ import oath.NestedHeader.SimpleHeader
 import oath.NestedPayload.SimplePayload
 import oath.config.IssuerConfig.RegisteredConfig
 import oath.config.VerifierConfig.{LeewayWindowConfig, ProvidedWithConfig}
-import oath.config.{IssuerConfig, VerifierConfig}
+import oath.config.{IssuerConfig, ManagerConfig, VerifierConfig}
 import oath.model.RegisteredClaims
 import oath.{NestedHeader, NestedPayload}
 import org.scalacheck.{Arbitrary, Gen}
@@ -59,6 +59,33 @@ trait Arbitraries {
       leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
       providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims)
     } yield VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
+  }
+
+  implicit val managerConfigArbitrary: Arbitrary[ManagerConfig] = Arbitrary {
+    for {
+      issuerClaim         <- Gen.option(genNonEmptyString)
+      subjectClaim        <- Gen.option(genNonEmptyString)
+      audienceClaims      <- Gen.listOf(genNonEmptyString)
+      includeJwtIdClaim   <- Arbitrary.arbitrary[Boolean]
+      includeIssueAtClaim <- Arbitrary.arbitrary[Boolean]
+      expiresAtOffset     <- Gen.option(genPositiveFiniteDuration)
+      notBeforeOffset     <- Gen.option(genPositiveFiniteDuration)
+      leeway              <- Gen.option(genPositiveFiniteDurationSeconds)
+      issuedAt            <- Gen.option(genPositiveFiniteDurationSeconds)
+      expiresAt           <- Gen.option(genPositiveFiniteDurationSeconds)
+      notBefore           <- Gen.option(genPositiveFiniteDurationSeconds)
+      leewayWindow = LeewayWindowConfig(leeway, issuedAt, expiresAt, notBefore)
+      providedWith = ProvidedWithConfig(issuerClaim, subjectClaim, audienceClaims)
+      registered = RegisteredConfig(issuerClaim,
+                                    subjectClaim,
+                                    audienceClaims,
+                                    includeJwtIdClaim,
+                                    includeIssueAtClaim,
+                                    expiresAtOffset,
+                                    notBeforeOffset)
+      verifier = VerifierConfig(Algorithm.none(), providedWith, leewayWindow)
+      issuer   = IssuerConfig(Algorithm.none(), registered)
+    } yield ManagerConfig(issuer, verifier)
   }
 
   implicit val registeredClaimsArbitrary: Arbitrary[RegisteredClaims] = Arbitrary {

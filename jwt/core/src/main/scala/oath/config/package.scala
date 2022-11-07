@@ -26,8 +26,7 @@ package object config {
 
     def getMaybeFiniteDuration(path: String): Option[FiniteDuration] =
       allCatch
-        .withTry(config.getDuration(path))
-        .map(_.toScala.some)
+        .withTry(config.getDuration(path).toScala.some)
         .recover(ifMissingDefault(None))
         .get
 
@@ -39,11 +38,9 @@ package object config {
 
     def getSeqNonEmptyString(path: String): Seq[NonEmptyString] =
       allCatch
-        .withTry(config.getStringList(path))
-        .toOption
-        .map(_.asScala)
-        .toSeq
-        .flatten
+        .withTry(config.getStringList(path).asScala.toSeq)
+        .recover(ifMissingDefault(Seq.empty))
+        .get
         .map(NonEmptyString.unsafeFrom)
 
     def getMaybeConfig(path: String): Option[Config] =

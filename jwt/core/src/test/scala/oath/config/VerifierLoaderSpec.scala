@@ -1,6 +1,6 @@
 package oath.config
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigException, ConfigFactory}
 import eu.timepit.refined.types.string.NonEmptyString
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 
@@ -65,7 +65,7 @@ class VerifierLoaderSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
     "load invalid-token-wrong-type verifier config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(InvalidTokenWrongTypeConfigLocation)
-      the[java.lang.IllegalArgumentException] thrownBy VerifierConfig.loadOrThrow(configLoader)
+      the[ConfigException.WrongType] thrownBy VerifierConfig.loadOrThrow(configLoader)
     }
   }
 }

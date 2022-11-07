@@ -26,31 +26,33 @@ class JwtVerifierSpec extends AnyWordSpecBase with PropertyBasedTesting with Clo
     "verify token with prerequisite configurations" in forAll { config: VerifierConfig =>
       val jwtVerifier = new JwtVerifier(config)
 
+      val leeway    = config.leewayWindow.leeway.map(leeway => now.plusSeconds(leeway.toSeconds - 1))
+      val expiresAt = config.leewayWindow.expiresAt.map(expiresAt => now.plusSeconds(expiresAt.toSeconds - 1))
+      val notBefore = config.leewayWindow.notBefore.map(notBefore => now.plusSeconds(notBefore.toSeconds - 1))
+      val issueAt   = config.leewayWindow.issuedAt.map(issueAt => now.plusSeconds(issueAt.toSeconds - 1))
+
       val token = JWT
         .create()
         .tap(builder => config.providedWith.issuerClaim.map(nonEmptyString => builder.withIssuer(nonEmptyString.value)))
         .tap(builder =>
           config.providedWith.subjectClaim.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
         .tap(builder => builder.withAudience(config.providedWith.audienceClaims.map(_.value): _*))
-        .tap(builder =>
-          config.leewayWindow.leeway.map { leeway =>
-            builder.withExpiresAt(now.plusSeconds(leeway.toSeconds - 1))
-            builder.withIssuedAt(now.plusSeconds(leeway.toSeconds - 1))
-            builder.withNotBefore(now.plusSeconds(leeway.toSeconds - 1))
-          })
-        .tap(builder =>
-          config.leewayWindow.expiresAt.map(expiresAt =>
-            builder.withExpiresAt(now.plusSeconds(expiresAt.toSeconds - 1))))
-        .tap(builder =>
-          config.leewayWindow.issuedAt.map(issueAt => builder.withIssuedAt(now.plusSeconds(issueAt.toSeconds - 1))))
-        .tap(builder =>
-          config.leewayWindow.notBefore.map(notBefore =>
-            builder.withNotBefore(now.plusSeconds(notBefore.toSeconds - 1))))
+        .tap(builder => (expiresAt orElse leeway).map(builder.withExpiresAt))
+        .tap(builder => (notBefore orElse leeway).map(builder.withNotBefore))
+        .tap(builder => (issueAt orElse leeway).map(builder.withIssuedAt))
         .sign(config.algorithm)
 
-      val verified = jwtVerifier.verifyJwt(JwtToken.Token(NonEmptyString.unsafeFrom(token))).toOption
+      val verified = jwtVerifier.verifyJwt(JwtToken.Token(NonEmptyString.unsafeFrom(token))).value
 
-      verified should not be empty
+      verified.registered shouldBe RegisteredClaims(
+        config.providedWith.issuerClaim,
+        config.providedWith.subjectClaim,
+        config.providedWith.audienceClaims,
+        expiresAt orElse leeway,
+        notBefore orElse leeway,
+        issueAt orElse leeway,
+        None
+      )
     }
 
     "verify a token with header" in forAll { nestedHeader: NestedHeader =>

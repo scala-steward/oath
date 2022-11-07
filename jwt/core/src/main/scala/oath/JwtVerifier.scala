@@ -38,13 +38,13 @@ final class JwtVerifier(config: VerifierConfig, customJWTVerifier: Option[JWTVer
 
   private def getRegisteredClaims(decodedJWT: DecodedJWT): RegisteredClaims =
     RegisteredClaims(
-      iss = decodedJWT.getClaim("iss").asOptionNonEmptyString,
-      sub = decodedJWT.getClaim("sub").asOptionNonEmptyString,
-      aud = decodedJWT.getClaim("aud").asSeqNonEmptyString,
-      exp = decodedJWT.getClaim("exp").asOptionInstant,
-      nbf = decodedJWT.getClaim("nbf").asOptionInstant,
-      iat = decodedJWT.getClaim("iat").asOptionInstant,
-      jti = decodedJWT.getClaim("jti").asOptionNonEmptyString
+      iss = decodedJWT.getOptionNonEmptyStringIssuer,
+      sub = decodedJWT.getOptionNonEmptyStringSubject,
+      aud = decodedJWT.getSeqNonEmptyStringAudience,
+      exp = decodedJWT.getOptionExpiresAt,
+      nbf = decodedJWT.getOptionNotBefore,
+      iat = decodedJWT.getOptionIssueAt,
+      jti = decodedJWT.getOptionNonEmptyStringID
     )
 
   private def handler(decodedJWT: => DecodedJWT): Either[JwtVerifyError, DecodedJWT] =

@@ -1,6 +1,6 @@
 package oath.config
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigException, ConfigFactory}
 import eu.timepit.refined.types.string.NonEmptyString
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 
@@ -19,8 +19,8 @@ class IssuerLoaderSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
     "load default-token issuer config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(DefaultTokenConfigLocation)
+      val config       = IssuerConfig.loadOrThrow(configLoader)
 
-      val config = IssuerConfig.loadOrThrow(configLoader)
       config.registered.issuerClaim shouldBe None
       config.registered.subjectClaim shouldBe None
       config.registered.audienceClaims shouldBe Seq.empty
@@ -33,11 +33,11 @@ class IssuerLoaderSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
     "load token issuer config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(TokenConfigLocation)
+      val config       = IssuerConfig.loadOrThrow(configLoader)
 
-      val config = IssuerConfig.loadOrThrow(configLoader)
       config.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
       config.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")
-      config.registered.audienceClaims shouldBe Seq("aud1","aud2").map(NonEmptyString.unsafeFrom)
+      config.registered.audienceClaims shouldBe Seq("aud1", "aud2").map(NonEmptyString.unsafeFrom)
       config.registered.includeIssueAtClaim shouldBe true
       config.registered.includeJwtIdClaim shouldBe false
       config.registered.expiresAtOffset shouldBe 1.day.some
@@ -47,9 +47,10 @@ class IssuerLoaderSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
     "load token issuer config values from reference configuration file using location" in {
       val config = IssuerConfig.loadOrThrow(TokenConfigLocation)
+
       config.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
       config.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")
-      config.registered.audienceClaims shouldBe Seq("aud1","aud2").map(NonEmptyString.unsafeFrom)
+      config.registered.audienceClaims shouldBe Seq("aud1", "aud2").map(NonEmptyString.unsafeFrom)
       config.registered.includeIssueAtClaim shouldBe true
       config.registered.includeJwtIdClaim shouldBe false
       config.registered.expiresAtOffset shouldBe 1.day.some
@@ -59,16 +60,14 @@ class IssuerLoaderSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
     "load invalid-token-empty-string issuer config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(InvalidTokenEmptyStringConfigLocation)
-      val x = IssuerConfig.loadOrThrow(configLoader)
-      println(x.registered.issuerClaim)
-      the[RuntimeException] thrownBy IssuerConfig.loadOrThrow(configLoader)
+
+      the[IllegalArgumentException] thrownBy IssuerConfig.loadOrThrow(configLoader)
     }
 
     "load invalid-token-wrong-type issuer config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(InvalidTokenWrongTypeConfigLocation)
-      val x = IssuerConfig.loadOrThrow(configLoader)
-      println(x.registered.notBeforeOffset)
-      the[RuntimeException] thrownBy IssuerConfig.loadOrThrow(configLoader)
+
+      the[ConfigException.BadValue] thrownBy IssuerConfig.loadOrThrow(configLoader)
     }
   }
 }

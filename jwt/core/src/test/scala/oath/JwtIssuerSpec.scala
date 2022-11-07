@@ -52,10 +52,10 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
           Option(decodedJWT.getId) shouldBe empty
 
         Try(decodedJWT.getExpiresAt.toInstant).toOption shouldBe config.registered.expiresAtOffset.map(offset =>
-          now.plusMillis(offset.toMillis))
+          now.plusSeconds(offset.toSeconds))
 
         Try(decodedJWT.getNotBefore.toInstant).toOption shouldBe config.registered.notBeforeOffset.map(offset =>
-          now.plusMillis(offset.toMillis))
+          now.plusSeconds(offset.toSeconds))
       }
 
       "issue token with predefine configure claims and ad-hoc registered claims" in forAll {
@@ -69,9 +69,9 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
             if (registeredClaims.aud.nonEmpty) registeredClaims.aud else config.registered.audienceClaims
           val expectedIssuedAt = registeredClaims.iat orElse Option.when(config.registered.includeIssueAtClaim)(now)
           val expectedExpiredAt =
-            registeredClaims.exp orElse config.registered.expiresAtOffset.map(offset => now.plusMillis(offset.toMillis))
+            registeredClaims.exp orElse config.registered.expiresAtOffset.map(offset => now.plusSeconds(offset.toSeconds))
           val expectedNotBefore =
-            registeredClaims.nbf orElse config.registered.notBeforeOffset.map(offset => now.plusMillis(offset.toMillis))
+            registeredClaims.nbf orElse config.registered.notBeforeOffset.map(offset => now.plusSeconds(offset.toSeconds))
 
           jwtClaims.claims.registered.iss shouldBe expectedIssuer
           jwtClaims.claims.registered.sub shouldBe expectedSubject
