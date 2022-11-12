@@ -1,11 +1,23 @@
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 ThisBuild / organization := "io.github.andrewrigas"
 ThisBuild / organizationName := "oath"
 ThisBuild / organizationHomepage := Some(url("https://github.com/andrewrigas/oath"))
-ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "2.13.10"
+ThisBuild / version := "0.0.1-SNAPSHOT"
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 ThisBuild / coverageEnabled := true
-Global / onChangedBuildSource := ReloadOnSourceChanges
+
+ThisBuild / tlBaseVersion := "0.0.1-SNAPSHOT"
+ThisBuild / startYear := Some(2022)
+ThisBuild / licenses := Seq(License.Apache2)
+ThisBuild / developers := List(
+    tlGitHubDev("andrewrigas", "Andreas Rigas")
+)
+ThisBuild / tlSonatypeUseLegacyHost := false
+
+val Scala213 = "2.13.10"
+ThisBuild / crossScalaVersions := Seq(Scala213, "3.2.1")
+ThisBuild / scalaVersion := Scala213
 
 lazy val root = Projects
   .createModule("oath", ".")
