@@ -69,9 +69,11 @@ class JwtIssuerSpec extends AnyWordSpecBase with PropertyBasedTesting with Clock
             if (registeredClaims.aud.nonEmpty) registeredClaims.aud else config.registered.audienceClaims
           val expectedIssuedAt = registeredClaims.iat orElse Option.when(config.registered.includeIssueAtClaim)(now)
           val expectedExpiredAt =
-            registeredClaims.exp orElse config.registered.expiresAtOffset.map(offset => now.plusSeconds(offset.toSeconds))
+            registeredClaims.exp orElse config.registered.expiresAtOffset.map(offset =>
+              now.plusSeconds(offset.toSeconds))
           val expectedNotBefore =
-            registeredClaims.nbf orElse config.registered.notBeforeOffset.map(offset => now.plusSeconds(offset.toSeconds))
+            registeredClaims.nbf orElse config.registered.notBeforeOffset.map(offset =>
+              now.plusSeconds(offset.toSeconds))
 
           jwtClaims.claims.registered.iss shouldBe expectedIssuer
           jwtClaims.claims.registered.sub shouldBe expectedSubject

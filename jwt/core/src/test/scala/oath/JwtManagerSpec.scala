@@ -4,7 +4,7 @@ import oath.config.ManagerConfig
 import oath.model.JwtToken
 import oath.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 
-class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting{
+class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
   "JwtManager" should {
 

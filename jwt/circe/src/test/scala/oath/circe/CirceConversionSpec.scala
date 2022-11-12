@@ -18,7 +18,8 @@ class CirceConversionSpec extends AnyWordSpecBase {
   val verifierConfig =
     VerifierConfig(Algorithm.none(), ProvidedWithConfig(None, None, Nil), LeewayWindowConfig(None, None, None, None))
   val issuerConfig =
-    IssuerConfig(Algorithm.none(), RegisteredConfig(None, None, Nil, includeJwtIdClaim = false, includeIssueAtClaim = false, None, None))
+    IssuerConfig(Algorithm.none(),
+                 RegisteredConfig(None, None, Nil, includeJwtIdClaim = false, includeIssueAtClaim = false, None, None))
 
   val jwtVerifier = new JwtVerifier(verifierConfig)
   val jwtIssuer   = new JwtIssuer(issuerConfig)

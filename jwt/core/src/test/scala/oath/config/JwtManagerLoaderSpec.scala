@@ -5,9 +5,7 @@ import oath.testkit.AnyWordSpecBase
 class JwtManagerLoaderSpec extends AnyWordSpecBase {
 
   "asd" should {
-    "asd" in {
-
-    }
+    "asd" in {}
   }
 
 }

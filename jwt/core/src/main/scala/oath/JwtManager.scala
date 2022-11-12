@@ -40,5 +40,5 @@ final class JwtManager(config: ManagerConfig, customJWTVerifier: Option[JWTVerif
   def verifyJwt[H, P](jwt: JwtToken.TokenHP)(implicit
       headerDecoder: ClaimsDecoder[H],
       payloadDecoder: ClaimsDecoder[P]
-  ): Either[JwtVerifyError, JwtClaims.ClaimsHP[H, P]] = verifier.verifyJwt(jwt)(headerDecoder,payloadDecoder)
+  ): Either[JwtVerifyError, JwtClaims.ClaimsHP[H, P]] = verifier.verifyJwt(jwt)(headerDecoder, payloadDecoder)
 }
