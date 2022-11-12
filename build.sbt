@@ -14,10 +14,7 @@ ThisBuild / developers := List(
     tlGitHubDev("andrewrigas", "Andreas Rigas")
 )
 ThisBuild / tlSonatypeUseLegacyHost := false
-
-val Scala213 = "2.13.10"
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.2.1")
-ThisBuild / scalaVersion := Scala213
+ThisBuild / scalaVersion := "2.13.10"
 
 lazy val root = Projects
   .createModule("oath", ".")
