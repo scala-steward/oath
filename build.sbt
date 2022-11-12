@@ -29,26 +29,6 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         name = Some("Scalafmt and Scalafix tests")
       )
     )
-  ),
-  WorkflowJob(
-    id = "coverage",
-    name = "Generate coverage report",
-    scalas = List(scalaVersion.value),
-    steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
-      List(githubWorkflowJavaVersions.value.last)
-    ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
-      WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageAggregate")),
-      WorkflowStep.Use(
-        UseRef.Public(
-          "codecov",
-          "codecov-action",
-          "v2"
-        ),
-        params = Map(
-          "flags" -> List("${{matrix.scala}}", "${{matrix.java}}").mkString(",")
-        )
-      )
-    )
   )
 )
 
