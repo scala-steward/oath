@@ -4,7 +4,6 @@ ThisBuild / scalaVersion := "2.13.10"
 ThisBuild / organization := "io.github.andrewrigas"
 ThisBuild / organizationName := "oath"
 ThisBuild / organizationHomepage := Some(url("https://github.com/andrewrigas/oath"))
-ThisBuild / version := "0.0.1-SNAPSHOT"
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 ThisBuild / coverageEnabled := true
 
