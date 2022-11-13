@@ -33,6 +33,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 
 lazy val root = Projects
   .createModule("oath", ".")
+  .settings(publish / skip := true)
   .settings(Aliases.all)
   .aggregate(modules: _*)
 
