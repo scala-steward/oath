@@ -18,15 +18,15 @@ ThisBuild / startYear := Some(2022)
 
 ThisBuild / githubWorkflowAddedJobs ++= Seq(
   WorkflowJob(
-    id = "linting",
-    name = "Scalafmt and Scalafix",
+    id = "checklint",
+    name = "Check code style",
     scalas = List(scalaVersion.value),
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       List(githubWorkflowJavaVersions.value.last)
     ) ++ githubWorkflowGeneratedCacheSteps.value ++ List(
       WorkflowStep.Sbt(
         List("checkLint"),
-        name = Some("Scalafmt and Scalafix tests")
+        name = Some("Check Scalafmt and Scalafix rules")
       )
     )
   )

@@ -162,8 +162,8 @@ jobs:
       - name: Publish
         run: sbt '++${{ matrix.scala }}' tlRelease
 
-  linting:
-    name: Scalafmt and Scalafix
+  checklint:
+    name: Check code style
     strategy:
       matrix:
         os: [ubuntu-latest]
