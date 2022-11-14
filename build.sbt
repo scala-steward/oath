@@ -6,6 +6,7 @@ ThisBuild / organizationName := "oath"
 ThisBuild / organizationHomepage := Some(url("https://github.com/andrewrigas/oath"))
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 ThisBuild / coverageEnabled := true
+ThisBuild / tlMimaPreviousVersions := Set.empty
 
 ThisBuild / tlBaseVersion := "0.0"
 ThisBuild / licenses := Seq(License.Apache2)
@@ -33,7 +34,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
 
 lazy val root = Projects
   .createModule("oath", ".")
-  .settings(publish / skip := true)
+  .enablePlugins(NoPublishPlugin)
   .settings(Aliases.all)
   .aggregate(modules: _*)
 
@@ -48,7 +49,7 @@ lazy val jwtCirce = Projects
 
 lazy val csrfCore = Projects
   .createModule("csrf-core", "csrf/core")
-  .settings(publish / skip := true)
+  .enablePlugins(NoPublishPlugin)
 
 lazy val modules: Seq[ProjectReference] = Seq(
   jwtCore,
