@@ -6,8 +6,6 @@ ThisBuild / organizationName := "oath"
 ThisBuild / organizationHomepage := Some(url("https://github.com/andrewrigas/oath"))
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 ThisBuild / coverageEnabled := true
-ThisBuild / tlMimaPreviousVersions := Set.empty
-
 ThisBuild / tlBaseVersion := "0.0"
 ThisBuild / licenses := Seq(License.Apache2)
 ThisBuild / developers := List(
