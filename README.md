@@ -1,12 +1,23 @@
 ## OATH
 
-Set of tools that will aim to provide an easy integration with front-end clients to achieve a certain level of security.
+__OATH__ provides a set of tools for authentication/authorization of users.
 
-#### Description
+### Description
 
-### Modules
 
-#### JWT
+
+## Libraries
+
+* __JWT__ - The core library that provides an Issuer/Verifier/Manager to manipulate JWT's
+  * __Circe__ - an implicit convertion for converting Encoder/Decoder from Circe to ClaimEncoder/ClaimDecoder
+
+### JWT
+
+```scala
+libraryDependencies += "io.github.andrewrigas" %% "jwt-core" % "0.0.4"
+// Circe integration
+libraryDependencies += "io.github.andrewrigas" %% "jwt-circe" % "0.0.4"
+```
 
 Config file for `JWT Manager`
 ```hocon
