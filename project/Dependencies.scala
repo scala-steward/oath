@@ -61,4 +61,7 @@ object Dependencies {
 
   lazy val jwtCirce =
     libraryDependencies ++= Circe.all
+
+  lazy val csrfCore =
+    libraryDependencies ++= Refined.all ++ Utils.all ++ Testing.all
 }
