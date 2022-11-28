@@ -31,8 +31,8 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
     )
   ),
   WorkflowJob(
-    id = "coverage",
-    name = "Generate coverage report",
+    id = "Codecov",
+    name = "Codecov",
     scalas = List(scalaVersion.value),
     steps = List(WorkflowStep.Checkout) ++ WorkflowStep.SetupJava(
       List(githubWorkflowJavaVersions.value.last)
@@ -42,10 +42,7 @@ ThisBuild / githubWorkflowAddedJobs ++= Seq(
         UseRef.Public(
           "codecov",
           "codecov-action",
-          "v2"
-        ),
-        params = Map(
-          "flags" -> List("${{matrix.scala}}", "${{matrix.java}}").mkString(",")
+          "v3.1.1"
         )
       )
     )
