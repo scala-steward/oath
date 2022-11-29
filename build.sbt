@@ -69,6 +69,12 @@ lazy val jwtJsoniterScala = Projects
   .settings(Dependencies.jwtJsoniterScala)
   .dependsOn(jwtCore % "compile->compile;test->test")
 
+lazy val juror = Projects
+  .createModule("juror", "juror/core")
+  .enablePlugins(NoPublishPlugin)
+  .dependsOn(jwtCore % "compile->compile;test->test")
+  .dependsOn(csrfCore % "compile->compile;test->test")
+
 lazy val httpCore = Projects
   .createModule("http-core", "http/core")
   .enablePlugins(NoPublishPlugin)
