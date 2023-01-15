@@ -13,15 +13,17 @@ if you have already used those libraries you would probably find your self famil
 
 ## SBT Dependencies
 
+* [jwt-core](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-core)
 ```scala
 libraryDependencies += "io.github.andrewrigas" %% "jwt-core" % "0.0.0"
 ```
 
 ### Json Converters
 
+* [jwt-circe](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-circe)
+* [jwt-jsoniter-scala](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-jsoniter-scala)
 ```scala
 libraryDependencies += "io.github.andrewrigas" %% "jwt-circe" % "0.0.0"
-
 libraryDependencies += "io.github.andrewrigas" %% "jwt-jsoniter-scala" % "0.0.0"
 ```
 
@@ -53,7 +55,7 @@ final case class RegisteredClaims(iss: Option[NonEmptyString], sub: Option[NonEm
 ```
 
 Claims is more than Registered Claims though. Therefore, if the business requirements requires extra claims to be able
-to authenticate & authorize the client,
+to authenticate & authorize the clients,
 the library provides an ADT to describe each use case and the location for additional claims.
 
 ```scala
