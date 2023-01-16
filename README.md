@@ -11,9 +11,9 @@ __OATH__ provides a set of tools for WEB Applications
 
 ### Modules
 
-* [CSRF](./jwt/README.md) - Token generator library
+* [CSRF](./csrf/README.md) - Token generator library
 * [JWT](./jwt/README.md) - A Scala API of [java-jwt](https://github.com/auth0/java-jwt) Issuer and Verifier
-* [Juror](./jwt/README.md) - Extension of JWT to manipulate multiple tokens
+* [Juror](./juror/README.md) - Extension of JWT to manipulate multiple tokens
 
 ### SBT Dependencies
 
