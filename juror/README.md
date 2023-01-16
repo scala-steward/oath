@@ -11,7 +11,7 @@
 * [juror-core](https://mvnrepository.com/artifact/io.github.andrewrigas/juror-core)
 
 ```scala
-libraryDependencies += "io.github.andrewrigas" %% "juror-core" % "0.0.6"
+libraryDependencies += "io.github.andrewrigas" %% "juror-core" % "0.0.0"
 ```
 
 ---

@@ -10,7 +10,7 @@
 
 * [csrf-core](https://mvnrepository.com/artifact/io.github.andrewrigas/csrf-core)
 ```scala
-libraryDependencies += "io.github.andrewrigas" %% "csrf-core" % "0.0.6"
+libraryDependencies += "io.github.andrewrigas" %% "csrf-core" % "0.0.0"
 ```
 
 ---

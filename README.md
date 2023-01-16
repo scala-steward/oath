@@ -22,9 +22,9 @@ __OATH__ provides a set of tools for WEB Applications
 * [juror-core](https://mvnrepository.com/artifact/io.github.andrewrigas/juror-core)
 
 ```scala
-libraryDependencies += "io.github.andrewrigas" %% "csrf-core" % "0.0.6"
+libraryDependencies += "io.github.andrewrigas" %% "csrf-core" % "0.0.0"
 libraryDependencies += "io.github.andrewrigas" %% "jwt-core" % "0.0.0"
-libraryDependencies += "io.github.andrewrigas" %% "juror-core" % "0.0.6"
+libraryDependencies += "io.github.andrewrigas" %% "juror-core" % "0.0.0"
 ```
 
 ### Json Converters
