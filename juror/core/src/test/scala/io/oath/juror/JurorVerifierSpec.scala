@@ -1,7 +1,8 @@
 package io.oath.juror
 
-import io.oath.jwt.model.JwtToken
 import io.oath.jwt.testkit.AnyWordSpecBase
+
+import io.oath.jwt.syntax.TokenOps
 
 class JurorVerifierSpec extends AnyWordSpecBase {
 
@@ -31,10 +32,10 @@ class JurorVerifierSpec extends AnyWordSpecBase {
       val activationEmailToken = activationEmailTokenIssuer.issueJwt().value.token
       val forgotPasswordToken  = forgotPasswordTokenIssuer.issueJwt().value.token
 
-      accessTokenVerifier.verifyJwt(JwtToken.Token(accessToken)).isRight shouldBe true
-      refreshTokenVerifier.verifyJwt(JwtToken.Token(refreshToken)).isRight shouldBe true
-      activationEmailTokenVerifier.verifyJwt(JwtToken.Token(activationEmailToken)).isRight shouldBe true
-      forgotPasswordTokenVerifier.verifyJwt(JwtToken.Token(forgotPasswordToken)).isRight shouldBe true
+      accessTokenVerifier.verifyJwt(accessToken.value.toToken).isRight shouldBe true
+      refreshTokenVerifier.verifyJwt(refreshToken.value.toToken).isRight shouldBe true
+      activationEmailTokenVerifier.verifyJwt(activationEmailToken.value.toToken).isRight shouldBe true
+      forgotPasswordTokenVerifier.verifyJwt(forgotPasswordToken.value.toToken).isRight shouldBe true
     }
   }
 }

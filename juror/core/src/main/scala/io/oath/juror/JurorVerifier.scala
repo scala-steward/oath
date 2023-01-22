@@ -14,7 +14,7 @@ object JurorVerifier {
 
   def createOrFail[A <: TokenEnumEntry](tokenEnumEntry: TokenEnum[A]): JurorVerifier[A] =
     tokenEnumEntry.mapping.view
-      .mapValues(configLocation => ConfigLoader.verifier(configLocation))
+      .mapValues(configLocation => ConfigLoader.loadOrThrowVerifier(configLocation))
       .mapValues(config => new JVerifier(config))
       .toMap
       .pipe(mapping => new JurorVerifier(mapping))

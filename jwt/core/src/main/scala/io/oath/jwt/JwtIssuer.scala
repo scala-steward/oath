@@ -6,10 +6,11 @@ import java.util.UUID
 
 import com.auth0.jwt.exceptions.JWTCreationException
 import com.auth0.jwt.{JWT, JWTCreator}
+import com.fasterxml.jackson.databind.ObjectMapper
 import eu.timepit.refined.types.string.NonEmptyString
 import io.oath.jwt.config.JwtIssuerConfig
-import io.oath.jwt.model.{IssueJwtError, Jwt, JwtClaims, RegisteredClaims}
-import io.oath.jwt.utils.unsafeParseJsonToJavaMap
+import io.oath.jwt.model.{Jwt, JwtClaims, JwtIssueError, RegisteredClaims}
+import io.oath.jwt.utils._
 
 import scala.util.control.Exception.allCatch
 
@@ -17,9 +18,9 @@ import scala.util.chaining.scalaUtilChainingOps
 
 final class JwtIssuer(config: JwtIssuerConfig, clock: Clock = Clock.systemUTC()) {
 
-  private val jwtBuilder: JWTCreator.Builder = JWT.create()
+  private lazy val mapper = new ObjectMapper
 
-  private def setPredefinedClaims(builder: JWTCreator.Builder, registeredClaims: RegisteredClaims): JWTCreator.Builder =
+  private def buildJwt(builder: JWTCreator.Builder, registeredClaims: RegisteredClaims): JWTCreator.Builder =
     builder
       .tap(builder => registeredClaims.iss.map(nonEmptyString => builder.withIssuer(nonEmptyString.value)))
       .tap(builder => registeredClaims.sub.map(nonEmptyString => builder.withSubject(nonEmptyString.value)))
@@ -50,83 +51,111 @@ final class JwtIssuer(config: JwtIssuerConfig, clock: Clock = Clock.systemUTC())
     )
   }
 
-  private def handler[T <: JwtClaims](jwt: => Jwt[T]): Either[IssueJwtError, Jwt[T]] =
+  private def safeEncode[H](
+      claims: H
+  )(implicit claimsEncoder: ClaimsEncoder[H]): Either[JwtIssueError.EncodeError, java.util.Map[String, Object]] =
+    allCatch
+      .withTry(
+        claimsEncoder
+          .encode(claims)
+          .pipe(json => mapper.readValue(json, classOf[java.util.HashMap[String, Object]]))
+      )
+      .toEither
+      .left
+      .map(error => JwtIssueError.EncodeError(error.getMessage))
+
+  private def encryptJwt[T <: JwtClaims](jwt: Jwt[T]): Either[JwtIssueError.EncryptionError, Jwt[T]] =
+    config.encrypt
+      .map(encryptConfig =>
+        EncryptionUtils
+          .encryptAES(jwt.token, encryptConfig.secret)
+          .map(token => jwt.copy(token = token)))
+      .getOrElse(Right(jwt))
+
+  private def handler[T <: JwtClaims](jwt: => Jwt[T]): Either[JwtIssueError, Jwt[T]] =
     allCatch.withTry(jwt).toEither.left.map {
-      case e: IllegalArgumentException => IssueJwtError.IllegalArgument(e.getMessage)
-      case e: JWTCreationException     => IssueJwtError.JwtCreationError(e.getMessage)
-      case e                           => IssueJwtError.UnexpectedError(e.getMessage)
+      case e: IllegalArgumentException => JwtIssueError.IllegalArgument(e.getMessage)
+      case e: JWTCreationException     => JwtIssueError.JwtCreationIssueError(e.getMessage)
+      case e                           => JwtIssueError.UnexpectedIssueError(e.getMessage)
     }
 
   def issueJwt(
       claims: JwtClaims.Claims = JwtClaims.Claims()
-  ): Either[IssueJwtError, Jwt[JwtClaims.Claims]] =
-    handler(
-      jwtBuilder
-        .pipe(_ -> setRegisteredClaims(claims.registered))
-        .pipe { case (builder, registeredClaims) =>
-          setPredefinedClaims(builder, registeredClaims).sign(config.algorithm) -> registeredClaims
-        }
-        .pipe { case (token, registeredClaims) =>
-          Jwt(JwtClaims.Claims(registeredClaims), NonEmptyString.unsafeFrom(token))
-        }
-    )
+  ): Either[JwtIssueError, Jwt[JwtClaims.Claims]] = {
+    val jwtBuilder = JWT.create()
+    setRegisteredClaims(claims.registered)
+      .pipe(registeredClaims => buildJwt(jwtBuilder, registeredClaims) -> registeredClaims)
+      .pipe { case (jwtBuilder, registeredClaims: RegisteredClaims) =>
+        handler(
+          Jwt(
+            JwtClaims.Claims(registeredClaims),
+            NonEmptyString.unsafeFrom(jwtBuilder.sign(config.algorithm))
+          )
+        )
+      }
+      .flatMap(encryptJwt)
+  }
 
   def issueJwt[H](claims: JwtClaims.ClaimsH[H])(implicit
       claimsEncoder: ClaimsEncoder[H]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsH[H]]] =
-    handler(
-      jwtBuilder
-        .tap(builder =>
-          claimsEncoder
-            .encode(claims.header)
-            .pipe(json => builder.withHeader(unsafeParseJsonToJavaMap(json))))
-        .pipe(_ -> setRegisteredClaims(claims.registered))
-        .pipe { case (builder, registeredClaims) =>
-          setPredefinedClaims(builder, registeredClaims).sign(config.algorithm) -> registeredClaims
-        }
-        .pipe { case (token, registeredClaims) =>
-          Jwt(claims.copy(registered = registeredClaims), NonEmptyString.unsafeFrom(token))
-        }
-    )
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsH[H]]] = {
+    val jwtBuilder = JWT.create()
+    for {
+      header <- safeEncode(claims.header)
+      registeredClaims = setRegisteredClaims(claims.registered)
+      builder = jwtBuilder
+        .withHeader(header)
+        .pipe(builder => buildJwt(builder, registeredClaims))
+      jwt <- handler(
+        Jwt(
+          claims.copy(registered = registeredClaims),
+          NonEmptyString.unsafeFrom(builder.sign(config.algorithm))
+        )
+      )
+      encryptedJwt <- encryptJwt(jwt)
+    } yield encryptedJwt
+  }
 
   def issueJwt[P](claims: JwtClaims.ClaimsP[P])(implicit
       claimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsP[P]]] =
-    handler(
-      jwtBuilder
-        .tap(builder =>
-          claimsEncoder
-            .encode(claims.payload)
-            .pipe(json => builder.withPayload(unsafeParseJsonToJavaMap(json))))
-        .pipe(_ -> setRegisteredClaims(claims.registered))
-        .pipe { case (builder, registeredClaims) =>
-          setPredefinedClaims(builder, registeredClaims).sign(config.algorithm) -> registeredClaims
-        }
-        .pipe { case (token, registeredClaims) =>
-          Jwt(claims.copy(registered = registeredClaims), NonEmptyString.unsafeFrom(token))
-        }
-    )
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsP[P]]] = {
+    val jwtBuilder = JWT.create()
+    for {
+      payload <- safeEncode(claims.payload)
+      registeredClaims = setRegisteredClaims(claims.registered)
+      builder = jwtBuilder
+        .withPayload(payload)
+        .pipe(builder => buildJwt(builder, registeredClaims))
+      jwt <- handler(
+        Jwt(
+          claims.copy(registered = registeredClaims),
+          NonEmptyString.unsafeFrom(builder.sign(config.algorithm))
+        )
+      )
+      encryptedJwt <- encryptJwt(jwt)
+    } yield encryptedJwt
+  }
 
   def issueJwt[H, P](claims: JwtClaims.ClaimsHP[H, P])(implicit
       headerClaimsEncoder: ClaimsEncoder[H],
       payloadClaimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsHP[H, P]]] =
-    handler(
-      jwtBuilder
-        .tap(builder =>
-          headerClaimsEncoder
-            .encode(claims.header)
-            .pipe(json => builder.withHeader(unsafeParseJsonToJavaMap(json))))
-        .tap(builder =>
-          payloadClaimsEncoder
-            .encode(claims.payload)
-            .pipe(json => builder.withPayload(unsafeParseJsonToJavaMap(json))))
-        .pipe(_ -> setRegisteredClaims(claims.registered))
-        .pipe { case (builder, registeredClaims) =>
-          setPredefinedClaims(builder, registeredClaims).sign(config.algorithm) -> registeredClaims
-        }
-        .pipe { case (token, registeredClaims) =>
-          Jwt(claims.copy(registered = registeredClaims), NonEmptyString.unsafeFrom(token))
-        }
-    )
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsHP[H, P]]] = {
+    val jwtBuilder = JWT.create()
+    for {
+      payload <- safeEncode(claims.payload)
+      header  <- safeEncode(claims.header)
+      registeredClaims = setRegisteredClaims(claims.registered)
+      builder = jwtBuilder
+        .withPayload(payload)
+        .withHeader(header)
+        .pipe(builder => buildJwt(builder, registeredClaims))
+      jwt <- handler(
+        Jwt(
+          claims.copy(registered = registeredClaims),
+          NonEmptyString.unsafeFrom(builder.sign(config.algorithm))
+        )
+      )
+      encryptedJwt <- encryptJwt(jwt)
+    } yield encryptedJwt
+  }
 }

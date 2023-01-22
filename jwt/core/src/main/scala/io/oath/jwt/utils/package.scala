@@ -5,7 +5,6 @@ import java.time.Instant
 import java.util.Base64
 
 import com.auth0.jwt.interfaces.DecodedJWT
-import com.fasterxml.jackson.databind.ObjectMapper
 import eu.timepit.refined.types.string.NonEmptyString
 import io.oath.jwt.model.JwtVerifyError
 
@@ -15,10 +14,8 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 package object utils {
 
-  private val mapper = new ObjectMapper
-
-  private[oath] def unsafeParseJsonToJavaMap(json: String): java.util.Map[String, Object] =
-    mapper.readValue(json, classOf[java.util.HashMap[String, Object]])
+  private[utils] lazy val AES  = "AES"
+  private[utils] lazy val UTF8 = "utf-8"
 
   private[oath] def base64DecodeToken(token: String): Either[JwtVerifyError.DecodingError, String] =
     allCatch

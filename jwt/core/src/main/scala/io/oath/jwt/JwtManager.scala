@@ -1,7 +1,7 @@
 package io.oath.jwt
 
 import io.oath.jwt.config.JwtManagerConfig
-import io.oath.jwt.model.{IssueJwtError, Jwt, JwtClaims, JwtToken, JwtVerifyError}
+import io.oath.jwt.model.{Jwt, JwtClaims, JwtIssueError, JwtToken, JwtVerifyError}
 
 final class JwtManager(config: JwtManagerConfig) {
 
@@ -10,21 +10,21 @@ final class JwtManager(config: JwtManagerConfig) {
 
   def issueJwt(
       claims: JwtClaims.Claims = JwtClaims.Claims()
-  ): Either[IssueJwtError, Jwt[JwtClaims.Claims]] = issuer.issueJwt(claims)
+  ): Either[JwtIssueError, Jwt[JwtClaims.Claims]] = issuer.issueJwt(claims)
 
   def issueJwt[H](claims: JwtClaims.ClaimsH[H])(implicit
       claimsEncoder: ClaimsEncoder[H]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsH[H]]] = issuer.issueJwt(claims)
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsH[H]]] = issuer.issueJwt(claims)
 
   def issueJwt[P](claims: JwtClaims.ClaimsP[P])(implicit
       claimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsP[P]]] =
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsP[P]]] =
     issuer.issueJwt(claims)
 
   def issueJwt[H, P](claims: JwtClaims.ClaimsHP[H, P])(implicit
       headerClaimsEncoder: ClaimsEncoder[H],
       payloadClaimsEncoder: ClaimsEncoder[P]
-  ): Either[IssueJwtError, Jwt[JwtClaims.ClaimsHP[H, P]]] = issuer.issueJwt(claims)
+  ): Either[JwtIssueError, Jwt[JwtClaims.ClaimsHP[H, P]]] = issuer.issueJwt(claims)
 
   def verifyJwt(jwt: JwtToken.Token): Either[JwtVerifyError, JwtClaims.Claims] = verifier.verifyJwt(jwt)
 

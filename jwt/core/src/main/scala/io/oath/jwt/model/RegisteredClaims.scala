@@ -5,24 +5,16 @@ import java.time.Instant
 import eu.timepit.refined.types.string.NonEmptyString
 
 final case class RegisteredClaims(
-    iss: Option[NonEmptyString],
-    sub: Option[NonEmptyString],
-    aud: Seq[NonEmptyString],
-    exp: Option[Instant],
-    nbf: Option[Instant],
-    iat: Option[Instant],
-    jti: Option[NonEmptyString]
+    iss: Option[NonEmptyString] = None,
+    sub: Option[NonEmptyString] = None,
+    aud: Seq[NonEmptyString] = Seq.empty,
+    exp: Option[Instant] = None,
+    nbf: Option[Instant] = None,
+    iat: Option[Instant] = None,
+    jti: Option[NonEmptyString] = None
 )
 
 object RegisteredClaims {
 
-  def empty: RegisteredClaims = RegisteredClaims(
-    None,
-    None,
-    Seq.empty,
-    None,
-    None,
-    None,
-    None
-  )
+  def empty: RegisteredClaims = RegisteredClaims()
 }

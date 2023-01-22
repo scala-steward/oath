@@ -3,11 +3,13 @@ package io.oath.jwt.config
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.{Config, ConfigFactory}
 import eu.timepit.refined.types.string.NonEmptyString
+import io.oath.jwt.config.EncryptionLoader.EncryptConfig
 import io.oath.jwt.config.JwtVerifierConfig._
 
 import scala.concurrent.duration.FiniteDuration
 
 final case class JwtVerifierConfig(algorithm: Algorithm,
+                                   encrypt: Option[EncryptConfig],
                                    providedWith: ProvidedWithConfig,
                                    leewayWindow: LeewayWindowConfig
 )
@@ -27,6 +29,7 @@ object JwtVerifierConfig {
 
   private val VerifierConfigLocation     = "verifier"
   private val AlgorithmConfigLocation    = "algorithm"
+  private val EncryptConfigLocation      = "encrypt"
   private val ProvidedWithConfigLocation = "provided-with"
   private val LeewayWindowConfigLocation = "leeway-window"
 
@@ -47,7 +50,8 @@ object JwtVerifierConfig {
 
   def loadOrThrow(config: Config): JwtVerifierConfig = {
     val maybeVerificationScoped = config.getMaybeConfig(VerifierConfigLocation)
-    val algorithm = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = false)
+    val algorithm = AlgorithmLoader.loadOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = false)
+    val encrypt   = config.getMaybeConfig(EncryptConfigLocation).map(EncryptionLoader.loadOrThrow)
     val providedWith =
       for {
         verificationScoped <- maybeVerificationScoped
@@ -61,6 +65,7 @@ object JwtVerifierConfig {
       } yield loadOrThrowLeewayWindowConfig(leewayWindowScoped)
 
     JwtVerifierConfig(algorithm,
+                      encrypt,
                       providedWith.getOrElse(ProvidedWithConfig()),
                       leewayWindow.getOrElse(LeewayWindowConfig()))
   }

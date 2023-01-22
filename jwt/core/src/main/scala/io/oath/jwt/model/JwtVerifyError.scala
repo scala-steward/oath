@@ -27,6 +27,8 @@ object JwtVerifyError {
 
   final case class SignatureVerificationError(error: String) extends JwtVerifyError
 
+  final case class DecryptionError(error: String) extends JwtVerifyError
+
   final case class TokenExpired(error: String) extends JwtVerifyError
 
   final case class UnexpectedError(error: String) extends JwtVerifyError

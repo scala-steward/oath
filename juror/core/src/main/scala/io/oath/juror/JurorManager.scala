@@ -14,7 +14,7 @@ object JurorManager {
 
   def createOrFail[A <: TokenEnumEntry](tokenEnumEntry: TokenEnum[A]): JurorManager[A] =
     tokenEnumEntry.mapping.view
-      .mapValues(configLocation => ConfigLoader.manager(configLocation))
+      .mapValues(configLocation => ConfigLoader.loadOrThrowManager(configLocation))
       .mapValues(config => new JManager(config))
       .toMap
       .pipe(mapping => new JurorManager(mapping))
