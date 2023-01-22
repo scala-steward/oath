@@ -3,12 +3,13 @@ package io.oath.jwt.config
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.{Config, ConfigFactory}
 import eu.timepit.refined.types.string.NonEmptyString
+import io.oath.jwt.config.EncryptionLoader.EncryptConfig
 
 import scala.concurrent.duration.FiniteDuration
 
-import JwtIssuerConfig.RegisteredConfig
+import JwtIssuerConfig._
 
-final case class JwtIssuerConfig(algorithm: Algorithm, registered: RegisteredConfig)
+final case class JwtIssuerConfig(algorithm: Algorithm, encrypt: Option[EncryptConfig], registered: RegisteredConfig)
 
 object JwtIssuerConfig {
 
@@ -23,6 +24,7 @@ object JwtIssuerConfig {
 
   private val IssuerConfigLocation     = "issuer"
   private val AlgorithmConfigLocation  = "algorithm"
+  private val EncryptConfigLocation    = "encrypt"
   private val RegisteredConfigLocation = "registered"
 
   private def loadOrThrowRegisteredConfig(registeredScoped: Config): RegisteredConfig = {
@@ -45,13 +47,14 @@ object JwtIssuerConfig {
   }
 
   def loadOrThrow(config: Config): JwtIssuerConfig = {
+    val algorithm         = AlgorithmLoader.loadOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = true)
     val maybeIssuerScoped = config.getMaybeConfig(IssuerConfigLocation)
-    val algorithm = AlgorithmLoader.loadAlgorithmOrThrow(config.getConfig(AlgorithmConfigLocation), forIssuing = true)
+    val encrypt           = config.getMaybeConfig(EncryptConfigLocation).map(EncryptionLoader.loadOrThrow)
     val registered = maybeIssuerScoped
       .map(scoped => loadOrThrowRegisteredConfig(scoped.getConfig(RegisteredConfigLocation)))
       .getOrElse(RegisteredConfig())
 
-    JwtIssuerConfig(algorithm, registered)
+    JwtIssuerConfig(algorithm, encrypt, registered)
   }
 
   def loadOrThrow(location: String): JwtIssuerConfig = {

@@ -1,7 +1,8 @@
 package io.oath.juror
 
-import io.oath.jwt.model.JwtToken
 import io.oath.jwt.testkit.AnyWordSpecBase
+
+import io.oath.jwt.syntax.TokenOps
 
 class JurorManagerSpec extends AnyWordSpecBase {
 
@@ -22,10 +23,10 @@ class JurorManagerSpec extends AnyWordSpecBase {
       val activationEmailToken = activationEmailTokenManager.issueJwt().value.token
       val forgotPasswordToken  = forgotPasswordTokenManager.issueJwt().value.token
 
-      accessTokenManager.verifyJwt(JwtToken.Token(accessToken)).isRight shouldBe true
-      refreshTokenManager.verifyJwt(JwtToken.Token(refreshToken)).isRight shouldBe true
-      activationEmailTokenManager.verifyJwt(JwtToken.Token(activationEmailToken)).isRight shouldBe true
-      forgotPasswordTokenManager.verifyJwt(JwtToken.Token(forgotPasswordToken)).isRight shouldBe true
+      accessTokenManager.verifyJwt(accessToken.value.toToken).isRight shouldBe true
+      refreshTokenManager.verifyJwt(refreshToken.value.toToken).isRight shouldBe true
+      activationEmailTokenManager.verifyJwt(activationEmailToken.value.toToken).isRight shouldBe true
+      forgotPasswordTokenManager.verifyJwt(forgotPasswordToken.value.toToken).isRight shouldBe true
     }
   }
 

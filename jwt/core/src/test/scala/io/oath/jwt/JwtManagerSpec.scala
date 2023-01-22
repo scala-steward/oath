@@ -1,7 +1,6 @@
 package io.oath.jwt
 
 import io.oath.jwt.config.JwtManagerConfig
-import io.oath.jwt.model.JwtToken
 import io.oath.jwt.syntax._
 import io.oath.jwt.testkit.{AnyWordSpecBase, PropertyBasedTesting}
 
@@ -13,7 +12,7 @@ class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting {
       val jwtManager = new JwtManager(config)
 
       val jwt = jwtManager.issueJwt().value
-      jwtManager.verifyJwt(JwtToken.Token(jwt.token)).value.registered shouldBe jwt.claims.registered
+      jwtManager.verifyJwt(jwt.token.value.toToken).value.registered shouldBe jwt.claims.registered
     }
 
     "be able to issue and verify jwt tokens with header claims" in forAll {
@@ -22,7 +21,7 @@ class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
         val claims = nestedHeader.toClaimsH
         val jwt    = jwtManager.issueJwt(claims).value
-        jwtManager.verifyJwt[NestedHeader](JwtToken.TokenH(jwt.token)).value shouldBe claims
+        jwtManager.verifyJwt[NestedHeader](jwt.token.value.toTokenH).value shouldBe claims
           .copy(registered = jwt.claims.registered)
     }
 
@@ -32,7 +31,7 @@ class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
         val claims = nestedPayload.toClaimsP
         val jwt    = jwtManager.issueJwt(claims).value
-        jwtManager.verifyJwt[NestedPayload](JwtToken.TokenP(jwt.token)).value shouldBe claims
+        jwtManager.verifyJwt[NestedPayload](jwt.token.value.toTokenP).value shouldBe claims
           .copy(registered = jwt.claims.registered)
     }
 
@@ -42,7 +41,7 @@ class JwtManagerSpec extends AnyWordSpecBase with PropertyBasedTesting {
 
         val claims = (nestedHeader, nestedPayload).toClaimsHP
         val jwt    = jwtManager.issueJwt(claims).value
-        jwtManager.verifyJwt[NestedHeader, NestedPayload](JwtToken.TokenHP(jwt.token)).value shouldBe claims
+        jwtManager.verifyJwt[NestedHeader, NestedPayload](jwt.token.value.toTokenHP).value shouldBe claims
           .copy(registered = jwt.claims.registered)
     }
   }

@@ -2,6 +2,7 @@ package io.oath.jwt.config
 
 import com.typesafe.config.{ConfigException, ConfigFactory}
 import eu.timepit.refined.types.string.NonEmptyString
+import io.oath.jwt.config.EncryptionLoader.EncryptConfig
 import io.oath.jwt.testkit.AnyWordSpecBase
 
 import cats.implicits.catsSyntaxOptionId
@@ -12,6 +13,7 @@ class JwtIssuerLoaderSpec extends AnyWordSpecBase {
   val configFile                            = "issuer"
   val DefaultTokenConfigLocation            = "default-token"
   val TokenConfigLocation                   = "token"
+  val TokenWithEncryptionConfigLocation     = "token-with-encryption"
   val WithoutPrivateKeyTokenConfigLocation  = "without-private-key-token"
   val InvalidTokenEmptyStringConfigLocation = "invalid-token-empty-string"
   val InvalidTokenWrongTypeConfigLocation   = "invalid-token-wrong-type"
@@ -22,6 +24,7 @@ class JwtIssuerLoaderSpec extends AnyWordSpecBase {
       val configLoader = ConfigFactory.load(configFile).getConfig(DefaultTokenConfigLocation)
       val config       = JwtIssuerConfig.loadOrThrow(configLoader)
 
+      config.encrypt shouldBe empty
       config.registered.issuerClaim shouldBe None
       config.registered.subjectClaim shouldBe None
       config.registered.audienceClaims shouldBe Seq.empty
@@ -36,6 +39,22 @@ class JwtIssuerLoaderSpec extends AnyWordSpecBase {
       val configLoader = ConfigFactory.load(configFile).getConfig(TokenConfigLocation)
       val config       = JwtIssuerConfig.loadOrThrow(configLoader)
 
+      config.encrypt shouldBe empty
+      config.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
+      config.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")
+      config.registered.audienceClaims shouldBe Seq("aud1", "aud2").map(NonEmptyString.unsafeFrom)
+      config.registered.includeIssueAtClaim shouldBe true
+      config.registered.includeJwtIdClaim shouldBe false
+      config.registered.expiresAtOffset shouldBe 1.day.some
+      config.registered.notBeforeOffset shouldBe 1.minute.some
+      config.algorithm.getName shouldBe "RS256"
+    }
+
+    "load token issuer config values from configuration file with encryption key" in {
+      val configLoader = ConfigFactory.load(configFile).getConfig(TokenWithEncryptionConfigLocation)
+      val config       = JwtIssuerConfig.loadOrThrow(configLoader)
+
+      config.encrypt shouldBe Some(EncryptConfig(NonEmptyString.unsafeFrom("password")))
       config.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
       config.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")
       config.registered.audienceClaims shouldBe Seq("aud1", "aud2").map(NonEmptyString.unsafeFrom)
@@ -49,6 +68,7 @@ class JwtIssuerLoaderSpec extends AnyWordSpecBase {
     "load token issuer config values from reference configuration file using location" in {
       val config = JwtIssuerConfig.loadOrThrow(TokenConfigLocation)
 
+      config.encrypt shouldBe empty
       config.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
       config.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")
       config.registered.audienceClaims shouldBe Seq("aud1", "aud2").map(NonEmptyString.unsafeFrom)

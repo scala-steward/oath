@@ -16,8 +16,7 @@ class JwtManagerLoaderSpec extends AnyWordSpecBase {
 
     "load default-token verifier config values from configuration file" in {
       val configLoader = ConfigFactory.load(configFile).getConfig(TokenConfigLocation)
-
-      val config = JwtManagerConfig.loadOrThrow(configLoader)
+      val config       = JwtManagerConfig.loadOrThrow(configLoader)
 
       config.issuer.registered.issuerClaim shouldBe NonEmptyString.unapply("issuer")
       config.issuer.registered.subjectClaim shouldBe NonEmptyString.unapply("subject")

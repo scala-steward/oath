@@ -9,11 +9,11 @@ __OATH__ provides a set of tools for WEB Applications
 2. Authentication (Issuing JWT Tokens) 
 3. Authorization (Verifying JWT Tokens)
 
-### Modules
+### Modules - Documentation
 
-* [CSRF](./csrf/README.md) - Token generator library
-* [JWT](./jwt/README.md) - A Scala API of [java-jwt](https://github.com/auth0/java-jwt) Issuer and Verifier
-* [Juror](./juror/README.md) - Extension of JWT to manipulate multiple tokens
+* [CSRF Docs](./csrf/README.md) - CSRF token generator
+* [JWT Docs](./jwt/README.md) - A Scala API of [java-jwt](https://github.com/auth0/java-jwt)
+* [Juror Docs](./juror/README.md) - Extension of JWT to manipulate different type of tokens
 
 ### SBT Dependencies
 
@@ -22,17 +22,23 @@ __OATH__ provides a set of tools for WEB Applications
 * [juror-core](https://mvnrepository.com/artifact/io.github.andrewrigas/juror-core)
 
 ```scala
-libraryDependencies += "io.github.andrewrigas" %% "csrf-core" % "0.0.0"
-libraryDependencies += "io.github.andrewrigas" %% "jwt-core" % "0.0.0"
-libraryDependencies += "io.github.andrewrigas" %% "juror-core" % "0.0.0"
+libraryDependencies += Seq(
+  "io.github.andrewrigas" %% "csrf-core"  % "0.0.0",
+  "io.github.andrewrigas" %% "jwt-core"   % "0.0.0",
+  "io.github.andrewrigas" %% "juror-core" % "0.0.0"
+)
 ```
 
 ### Json Converters
 
 * [jwt-circe](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-circe)
-* [jwt-jsoniter-scala](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-jsoniter-scala)
 
 ```scala
 libraryDependencies += "io.github.andrewrigas" %% "jwt-circe" % "0.0.0"
+```
+
+* [jwt-jsoniter-scala](https://mvnrepository.com/artifact/io.github.andrewrigas/jwt-jsoniter-scala)
+
+```scala
 libraryDependencies += "io.github.andrewrigas" %% "jwt-jsoniter-scala" % "0.0.0"
 ```

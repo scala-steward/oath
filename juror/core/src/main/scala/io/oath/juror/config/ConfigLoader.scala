@@ -1,15 +1,15 @@
 package io.oath.juror.config
 
-import io.oath.jwt.config.{JwtIssuerConfig, JwtManagerConfig, JwtVerifierConfig}
+import io.oath.jwt.config._
 
 private[juror] object ConfigLoader {
 
-  def issuer(configLocation: String): JwtIssuerConfig =
+  def loadOrThrowIssuer(configLocation: String): JwtIssuerConfig =
     JwtIssuerConfig.loadOrThrow(rootConfig.getConfig(configLocation))
 
-  def verifier(configLocation: String): JwtVerifierConfig =
+  def loadOrThrowVerifier(configLocation: String): JwtVerifierConfig =
     JwtVerifierConfig.loadOrThrow(rootConfig.getConfig(configLocation))
 
-  def manager(configLocation: String): JwtManagerConfig =
+  def loadOrThrowManager(configLocation: String): JwtManagerConfig =
     JwtManagerConfig.loadOrThrow(rootConfig.getConfig(configLocation))
 }

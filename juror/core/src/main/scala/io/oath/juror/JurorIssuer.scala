@@ -14,7 +14,7 @@ object JurorIssuer {
 
   def createOrFail[A <: TokenEnumEntry](tokenEnumEntry: TokenEnum[A]): JurorIssuer[A] =
     tokenEnumEntry.mapping.view
-      .mapValues(configLocation => ConfigLoader.issuer(configLocation))
+      .mapValues(configLocation => ConfigLoader.loadOrThrowIssuer(configLocation))
       .mapValues(config => new JIssuer(config))
       .toMap
       .pipe(mapping => new JurorIssuer(mapping))
